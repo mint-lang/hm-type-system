@@ -1,0 +1,9 @@
+name: hm
+version: 0.1.0
+
+authors:
+  - Gusztáv Szikszai <guszti5@hotmail.com>
+
+crystal: 1.6.0
+
+license: MIT
