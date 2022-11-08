@@ -2,57 +2,6 @@ module HM
   module Unifier
     extend self
 
-    # This method returns a normalized version of the type which means that
-    # type variables with the same name, points to the same instance of a
-    # new variable (# denotes the id of the type for explanation purposes).
-    #
-    #   Type(a#1, a#2, a#3) -> Type(a#1, a#1, a#1)
-    #
-    # This is neccessary for the unification because these variables can point
-    # to other types and we want all instances of a type variable (a) to point
-    # to the same type.
-    #
-    # It returns a new type (and not modifies the current one) because an
-    # instance of a type can potentially be used multiple times.
-    #
-    # Variables are not normalized because they are basically just pointers.
-    #
-    # We sort the fields because when unification happens as they need to be in a
-    # definite order.
-    def normalize(type : Checkable, mapping = {} of String => Variable)
-      case type
-      in Variable
-        type
-      in Type
-        fields =
-          type.fields.map do |field|
-            normalized =
-              case value = field.item
-              in Variable
-                mapping[value.name]? ||
-                  (mapping[value.name] = Variable.new(value.name))
-              in Type
-                normalize(value, mapping)
-              end
-
-            Field.new(field.name, normalized)
-          end.sort do |item1, item2|
-            case {key1 = item1.name, key2 = item2.name}
-            when {String, String}
-              key1 <=> key2
-            when {Nil, String}
-              1
-            when {String, Nil}
-              -1
-            when {Nil, Nil}
-              0
-            end
-          end
-
-        Type.new(type.name, fields)
-      end
-    end
-
     # Returns whether a matches (can be unified with) b.
     def matches?(a : Checkable, b : Checkable) : Bool
       !unify(normalize(a), normalize(b), {} of Variable => Checkable).nil?
@@ -145,6 +94,57 @@ module HM
 
           a unless failed
         end
+      end
+    end
+
+    # This method returns a normalized version of the type which means that
+    # type variables with the same name, points to the same instance of a
+    # new variable (# denotes the id of the type for explanation purposes).
+    #
+    #   Type(a#1, a#2, a#3) -> Type(a#1, a#1, a#1)
+    #
+    # This is neccessary for the unification because these variables can point
+    # to other types and we want all instances of a type variable (a) to point
+    # to the same type.
+    #
+    # It returns a new type (and not modifies the current one) because an
+    # instance of a type can potentially be used multiple times.
+    #
+    # Variables are not normalized because they are basically just pointers.
+    #
+    # We sort the fields because when unification happens as they need to be in a
+    # definite order.
+    def normalize(type : Checkable, mapping = {} of String => Variable)
+      case type
+      in Variable
+        type
+      in Type
+        fields =
+          type.fields.map do |field|
+            normalized =
+              case value = field.item
+              in Variable
+                mapping[value.name]? ||
+                  (mapping[value.name] = Variable.new(value.name))
+              in Type
+                normalize(value, mapping)
+              end
+
+            Field.new(field.name, normalized)
+          end.sort do |item1, item2|
+            case {key1 = item1.name, key2 = item2.name}
+            when {String, String}
+              key1 <=> key2
+            when {Nil, String}
+              1
+            when {String, Nil}
+              -1
+            when {Nil, Nil}
+              0
+            end
+          end
+
+        Type.new(type.name, fields)
       end
     end
 
