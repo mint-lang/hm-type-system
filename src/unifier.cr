@@ -3,7 +3,7 @@ module HM
     extend self
 
     # This method returns a normalized version of the type which means that
-    # type variables with the same name points to the same instance of a
+    # type variables with the same name, points to the same instance of a
     # new variable (# denotes the id of the type for explanation purposes).
     #
     #   Type(a#1, a#2, a#3) -> Type(a#1, a#1, a#1)
@@ -81,18 +81,15 @@ module HM
     # type.
     #
     # It is important that this method assumes that both of the types were
-    # normalized before, since normalization orders the fields.
-    #
-    # As an optimization we don't normalize the types here.
+    # normalized before, since normalization orders the fields, so as an
+    # optimization we don't normalize the types here.
     private def unify(a : Checkable, b : Checkable, mapping : Hash(Variable, Checkable))
       case {a, b}
       in {Variable, Variable}
         # If there are two variables we need to check if they already have
-        # assigned types if they do we need to test if they are equal, if not
-        # we cannot unify.
-        #
-        # Otherwise we can just point them to each other (depending if they
-        # have instances or not).
+        # assigned types, if they do we need to test if they are equal, if not
+        # we cannot unify, otherwise we can just point them to each other
+        # (depending if they have instances or not).
         instanceA = mapping[a]?
         instanceB = mapping[b]?
 
@@ -105,12 +102,11 @@ module HM
         end
       in {Variable, Type}
         # If we have a variable and a type we need to check if the variable
-        # already points to the same type, if not, we cannot unify.
-        #
-        # Otherwise we can just point the variable to the type.
+        # already points to the same type, if not, we cannot unify, otherwise
+        # we can just point the variable to the type.
         instance = mapping[a]?
 
-        # This is important since the variables can point to each other.
+        # This check is important since the variables can point to each other.
         if instance && instance.is_a?(Type)
           nil unless instance == b
         else
@@ -122,7 +118,13 @@ module HM
       in {Type, Type}
         # If we have two types we need to check their name and their fields
         # for equality (with recursive unification calls).
-        if a.name == b.name && a.fields.size == b.fields.size
+        #
+        # If they are both records (only have named fields) we can assume that
+        # they represent the same data.
+        name_same =
+          (a.record? && b.record?) || a.name == b.name
+
+        if name_same && a.fields.size == b.fields.size
           failed =
             a.fields.zip(b.fields).any? do |item1, item2|
               item1.name != item2.name || begin

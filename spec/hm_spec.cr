@@ -85,6 +85,7 @@ describe HM do
   expect_unify("Function(a, a, String)", "Function(a, a, a)", "Function(String, String, String)")
   expect_unify("Test(key: String, a)", "Test(key: a, a)", "Test(key: String, String)")
   expect_unify("Test(key: String, a)", "Test(a, key: a)", "Test(key: String, String)")
+  expect_unify("Test(key: String)", "User(key: String)", "Test(key: String)")
   expect_unify("Maybe(a)", "Maybe(Array(a))", "Maybe(Array(a))")
   expect_unify("a", "String", "String")
   expect_unify("String", "a", "String")

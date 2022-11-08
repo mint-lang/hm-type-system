@@ -4,24 +4,6 @@ module HM
   # A checkable value is a type or a variable.
   alias Checkable = Type | Variable
 
-  # Represents a field of a type, basically a key, value pair.
-  class Field
-    getter name : String | Nil
-    getter item : Checkable
-
-    def initialize(@name, @item)
-    end
-  end
-
-  # Represents a variant of a type.
-  class Variant
-    getter items : Array(Field)
-    getter name : String
-
-    def initialize(@name, @items)
-    end
-  end
-
   # Represents a type variable which is a hole in a type.
   class Variable
     getter name : String
@@ -36,6 +18,13 @@ module HM
     getter name : String
 
     def initialize(@name, @fields)
+    end
+
+    # A type is a record if it only have named fields, in which case
+    # we can assume any other type with only the same named fields
+    # are the same.
+    def record?
+      fields.any? && fields.none?(&.name.nil?)
     end
   end
 
@@ -54,6 +43,24 @@ module HM
         parameters.map { |parameter| Field.new(nil, parameter) }
 
       [Type.new(name, fields)] of Checkable
+    end
+  end
+
+  # Represents a field of a type, basically a key, value pair.
+  class Field
+    getter name : String | Nil
+    getter item : Checkable
+
+    def initialize(@name, @item)
+    end
+  end
+
+  # Represents a variant of a type.
+  class Variant
+    getter items : Array(Field)
+    getter name : String
+
+    def initialize(@name, @items)
     end
   end
 end
