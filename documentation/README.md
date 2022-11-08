@@ -6,13 +6,14 @@ The type system can describe many data structures, even recursive ones.
 
 This repository contains:
 
-[ ] [Formal grammar (PEG.js)](../grammar/gammar.pegjs)
-[ ] [Parser for the types and pattern matching](../src/parser.cr)
-[ ] [Data structures for the types](../src/hm.cr)
-[ ] [Type unification algorithm](../src/hm.cr)
-[ ] Pattern matching algorithm (with exhaustiveness checking)
-[ ] JavaScript values for specific types
-[ ] Pattern matching function
+* [ ] [Formal grammar (PEG.js)](../grammar/gammar.pegjs)
+* [ ] [Parser for the types](../src/parser.cr)
+* [x] [Data structures for the types](../src/types.cr)
+* [x] [Type unification algorithm](../src/unifier.cr)
+* [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
+* [ ] Pattern matching algorithm (with exhaustiveness checking)
+* [ ] JavaScript values for specific types
+* [ ] JavaScript pattern matching function
 
 ## Types
 
@@ -38,8 +39,8 @@ These types usually have key-value pairs (fields) which identifies the field and
 
 ```
 type User {
-  active : Bool,
-  name : String,
+  active : Bool
+  name : String
   age : Number
 }
 ```

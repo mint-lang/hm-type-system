@@ -17,6 +17,42 @@ module HM
       @input = @original.chars
     end
 
+    # This method parses a type or a variable from the string, returns nil if it
+    # cannot parse. The full string needs to be parsed for it to be successful.
+    #
+    #   HM.parse("Test") -> true
+    #   HM.parse("Test(") -> false
+    #   HM.parse("Test(a)") -> true
+    def self.parse(input : String) : Checkable | Nil
+      parser =
+        Parser.new(input)
+
+      result =
+        parser.type || parser.variable
+
+      result if parser.eos?
+    end
+
+    def self.parse_definition(input : String) : Definition | Nil
+      parser =
+        Parser.new(input)
+
+      result =
+        parser.type_definition
+
+      result if parser.eos?
+    end
+
+    def self.parse_definitions(input : String) : Array(Definition) | Nil
+      parser =
+        Parser.new(input)
+
+      result =
+        parser.many { parser.type_definition }
+
+      result if parser.eos?
+    end
+
     # Moves the cursor forward.
     def step
       @position += 1
@@ -71,6 +107,23 @@ module HM
       end
     end
 
+    # Returns the current word at the cursor.
+    def keyword!(expected : String) : String | Nil
+      start do
+        word = gather { chars { |char| !char.ascii_whitespace? } }
+
+        next unless word
+        next unless word == expected
+        word
+      end
+    end
+
+    def keyword?(word)
+      word.each_char_with_index.all? do |char, i|
+        input[position + i]? == char
+      end
+    end
+
     # Starts to parse something, if the yielded value is nil then reset the
     # cursor where we started the parsing.
     def start
@@ -94,6 +147,23 @@ module HM
 
         result unless result.empty?
       end
+    end
+
+    def many(parse_whitespace : Bool = true, &block : -> T?) : Array(T) forall T
+      result = [] of T
+
+      loop do
+        # Consume whitespace
+        whitespace if parse_whitespace
+
+        # Break if the block didn't yield anything
+        break unless item = yield
+
+        # Add item to results
+        result << item
+      end
+
+      result
     end
 
     # Parses a list of things, which ends in the terminator character and are
@@ -138,7 +208,7 @@ module HM
                   when Field
                     item
                   else
-                    {nil.as(String | Nil), item}
+                    Field.new(name: nil, item: item)
                   end
                 end
 
@@ -155,16 +225,102 @@ module HM
       end
     end
 
+    def type_definition(parse_keyword : Bool = true)
+      start do
+        next if parse_keyword && !keyword! "type"
+
+        whitespace
+        next unless name = type_identifier
+        whitespace
+
+        parameters =
+          if char! '('
+            items =
+              list(separator: ',', terminator: ')') do
+                variable.as(Variable | Nil)
+              end
+
+            if char! ')'
+              items
+            else
+              next
+            end
+          else
+            [] of Variable
+          end
+
+        whitespace
+
+        fields =
+          if char! '{'
+            items =
+              many do
+                type_variant.as(Variant | Nil)
+              end
+
+            items = type_fields if items.empty?
+
+            if char! '}'
+              items
+            else
+              next
+            end
+          else
+            [] of Variant
+          end
+
+        Definition.new(name, parameters, fields)
+      end
+    end
+
+    # Parses a type definition field.
+    def type_variant : Variant | Nil
+      start do
+        key = type_identifier
+
+        next unless key
+        whitespace
+
+        fields =
+          if char! '('
+            items = type_fields
+
+            if char! ')'
+              items
+            else
+              next
+            end
+          else
+            [] of Field
+          end
+
+        return unless fields
+
+        Variant.new(key, fields)
+      end
+    end
+
+    def type_fields
+      list(separator: ',', terminator: ')') { type_field || type || variable }
+        .map do |item|
+          case item
+          when Field
+            item
+          else
+            Field.new(name: nil, item: item)
+          end
+        end
+    end
+
     # Parses a type field.
     def type_field
       start do
-        key =
-          value = gather do
-            next unless char.ascii_lowercase?
-            ascii_letters_or_numbers
-          end
+        key = gather do
+          next unless char.ascii_lowercase?
+          ascii_letters_or_numbers
+        end
 
-        next unless value
+        next unless key
 
         whitespace
         next unless char! ':'
@@ -172,12 +328,12 @@ module HM
 
         next unless node = type || variable
 
-        {key, node}
+        Field.new(name: key, item: node)
       end
     end
 
     # Parses a variable.
-    def variable : Checkable | Nil
+    def variable : Variable | Nil
       start do
         value = gather do
           next unless char.ascii_lowercase?
@@ -186,7 +342,7 @@ module HM
 
         next unless value
 
-        Variable.new(value).as(Checkable)
+        Variable.new(value)
       end
     end
 
