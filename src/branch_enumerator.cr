@@ -26,41 +26,40 @@ module HM
       end
     end
 
-    def possibilities(variants : Array(Variant), parameters = [] of Array(Checkable)) : Array(Checkable)
-      variants.map do |variant|
-        # If a variant doesn't have any parameters we can just return a
-        # type with it's name.
-        if variant.items.size == 0
-          Type.new(variant.name, [] of Field)
-        else
-          possibilities(variant.name, variant.items)
-            .flat_map { |possibility| fill_compose(possibility, parameters) }
-        end
-      end.flatten
-    end
-
-    # Variables are replaced with an incrementing variable name.
-    def possibilities(variable : Variable) : Array(Checkable)
-      @variable =
-        @variable.succ
-
-      [Variable.new(@variable)] of Checkable
-    end
-
     def possibilities(type : Type) : Array(Checkable)
+      # Generate every possible combination of parameters of the fields, which
+      # we will use to backfill the other possibilities.
       parameters =
         compose(type.fields.map { |field| possibilities(field.item) })
 
       # We try to look up the definition of the type by name. If the definition
       # doesn't have any fields we can just return a type with it's name.
+      #
+      # If a definition doesn't have any fields it means that it's an abstract
+      # type which we can just fill with the parameters.
       if definition = definitions.find(&.name.==(type.name))
         if definition.fields.empty?
-          fill_compose(definition.type, parameters)
+          fill(definition.type, parameters)
         else
           possibilities(definition, compose(parameters))
         end
       else
-        fill_compose(type, parameters)
+        fill(type, parameters)
+      end
+    end
+
+    # If a variant doesn't have any parameters we can just return a
+    # type with it's name, otherwise we generate all possibilities of
+    # variants and fill any variables with their actual types.
+    def possibilities(variants : Array(Variant), parameters = [] of Array(Checkable)) : Array(Checkable)
+      variants.flat_map do |variant|
+        if variant.items.size == 0
+          Type.new(variant.name, [] of Field)
+        else
+          possibilities(variant.name, variant.items).flat_map do |possibility|
+            fill(possibility, parameters)
+          end
+        end
       end
     end
 
@@ -71,8 +70,8 @@ module HM
       compose(parameters).map do |item|
         named_fields =
           item.map do |field|
-            # We need to keep the name of the field but since compose doesn't keep
-            # it we need to get it with the index of the field.
+            # We need to keep the name of the field but since compose doesn't
+            # keep it we need to get it with the index of the field.
             name =
               fields[item.index(field) || -1]?.try(&.name)
 
@@ -83,20 +82,34 @@ module HM
       end
     end
 
-    def fill_compose(type : Checkable, replacements = [] of Array(Checkable)) : Array(Checkable)
+    # Variables are replaced with an incrementing variable name.
+    def possibilities(variable : Variable) : Array(Checkable)
+      @variable =
+        @variable.succ
+
+      [Variable.new(@variable)] of Checkable
+    end
+
+    # Generates possibilities of the type by filling variables with their
+    # possible variations.
+    def fill(type : Checkable, replacements = [] of Array(Checkable)) : Array(Checkable)
       case type
       in Type
-        replacements.map do |parameters|
-          fields =
-            type.fields.zip(parameters).map do |(field, parameter)|
-              if field.variable?
-                Field.new(field.name, parameter)
-              else
-                field
+        if replacements.empty?
+          [type.as(Checkable)]
+        else
+          replacements.map do |parameters|
+            fields =
+              type.fields.zip(parameters).map do |(field, parameter)|
+                if field.variable?
+                  Field.new(field.name, parameter)
+                else
+                  field
+                end
               end
-            end
 
-          Type.new(type.name, fields).as(Checkable)
+            Type.new(type.name, fields).as(Checkable)
+          end
         end
       in Variable
         [type.as(Checkable)]

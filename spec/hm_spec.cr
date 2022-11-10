@@ -183,7 +183,7 @@ describe HM do
 
   expect_branches([
     "Loaded(content: String, Number, name: Nothing)",
-    "Loaded(content: String, Number, name: Just(a))",
+    "Loaded(content: String, Number, name: Just(String))",
     "Loading",
     "Idle",
   ], <<-TYPE
@@ -204,7 +204,7 @@ describe HM do
   )
 
   expect_branches([
-    "User(name: Just(a), active: Bool, age: Number)",
+    "User(name: Just(String), active: Bool, age: Number)",
     "User(name: Nothing, active: Bool, age: Number)",
   ], <<-TYPE
     type String
@@ -259,28 +259,17 @@ describe HM do
     matcher =
       HM::PatternMatcher.new(environment)
 
-    result = matcher.calculate(
+    result = matcher.match(
       [
-        HM::ArrayMatcher.new([
-          HM::TypePattern.new("Just", [HM::VariablePattern.new("a")] of HM::Pattern),
-          HM::Spread.new("rest"),
+        HM::Patterns::Array.new([] of HM::Pattern),
+        HM::Patterns::Array.new([
+          HM::Patterns::Type.new("Just", [HM::Patterns::Variable.new("a")] of HM::Pattern),
+          HM::Patterns::Spread.new("rest"),
         ] of HM::Pattern),
-        HM::ArrayMatcher.new([
-          HM::TypePattern.new("Nothing", [] of HM::Pattern),
+        HM::Patterns::Array.new([
+          HM::Patterns::Type.new("Nothing", [] of HM::Pattern),
         ] of HM::Pattern),
       ] of HM::Pattern,
       type)
-
-    if result
-      puts "Not covered branches:"
-      result[:not_covered].each do |x|
-        puts HM::Formatter.format(x)
-      end
-
-      puts "Unused patterns:"
-      result[:not_matched].each do |x|
-        puts x.format
-      end
-    end
   end
 end

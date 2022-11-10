@@ -1,115 +1,32 @@
+require "./patterns/*"
+
 module HM
-  abstract class Pattern
-    abstract def matches?(type : Checkable) : Bool | Nil
-    abstract def format : String
-  end
-
-  class WildcardPattern < Pattern
-    def matches?(type : Checkable) : Bool | Nil
-      true
-    end
-
-    def format : String
-      "_"
-    end
-  end
-
-  class VariablePattern < Pattern
-    getter name : String
-
-    def initialize(@name)
-    end
-
-    def matches?(type : Checkable) : Bool | Nil
-      case type
-      in Variable
-        true
-      in Type
-        type.fields.any?(&.name.==(name))
-      end
-    end
-
-    def format : String
-      name
-    end
-  end
-
-  class FieldPattern < Pattern
-    getter patterns : Array(Pattern)
-    getter name : String
-
-    def initialize(@name, @patterns)
-    end
-
-    def matches?(type : Checkable) : Bool | Nil
-      case type
-      in Variable
-        false
-      in Type
-        field =
-          type.fields.find(&.name.==(name))
-
-        field && patterns.all? do |pattern|
-          pattern.matches?(field.item)
-        end
-      end
-    end
-
-    def format : String
-      formatted =
-        patterns
-          .map(&.format)
-          .join(", ")
-
-      "#{name}: #{formatted}"
-    end
-  end
-
-  class TypePattern < Pattern
-    getter patterns : Array(Pattern)
-    getter name : String
-
-    def initialize(@name, @patterns)
-    end
-
-    def matches?(type : Checkable) : Bool | Nil
-      case type
-      in Variable
-        false
-      in Type
-        type.name == name &&
-          type.fields.size == patterns.size &&
-          type.fields.zip(patterns).all? do |field, subpattern|
-            subpattern.matches?(field.item)
-          end
-      end
-    end
-
-    def format : String
-      formatted =
-        patterns
-          .map(&.format)
-          .join(", ")
-
-      "#{name}(#{formatted})"
-    end
-  end
-
   class PatternMatcher
     getter environment : Environment
 
     def initialize(@environment)
     end
 
-    def calculate(patterns, type)
-      # return nil unless environment.sound?(type)
+    # Matches a number patterns against the branches of the given type (useful
+    # for case like expressions). Once a pattern is matched we stop matching it.
+    #
+    # It returnes a hash with useful information:
+    # - not_covered - branches that are not covered by any of the patterns
+    # - not_matched - patterns that are not matched to any of the branches
+    # - covered - branches that are covered by a pattern
+    # - matched - patterns that are covered by a branch
+    #
+    # If it returns nil that means that the given type is not sound.
+    def match(patterns : ::Array(Pattern), type : Checkable)
+      return nil unless environment.sound?(type)
 
       branches =
         HM::BranchEnumerator
           .new(environment.definitions)
           .possibilities(type)
+          .to_set
 
-      covered = [] of Checkable
+      covered = Set(Checkable).new
       matched = [] of Pattern
 
       branches.each do |branch|
@@ -117,9 +34,8 @@ module HM
           next if covered.includes?(pattern)
 
           if pattern.matches?(branch)
+            covered.add(branch)
             matched << pattern
-            covered << branch
-            break
           end
         end
       end
@@ -127,8 +43,8 @@ module HM
       {
         not_covered: branches - covered,
         not_matched: patterns - matched,
-        matched:     matched,
         covered:     covered,
+        matched:     matched,
       }
     end
   end

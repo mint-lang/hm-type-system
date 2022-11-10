@@ -7,11 +7,12 @@ The type system can describe many data structures, even recursive ones.
 This repository contains:
 
 * [ ] [Formal grammar (PEG.js)](../grammar/gammar.pegjs)
-* [ ] [Parser for the types](../src/parser.cr)
+* [ ] [Parser for the types, definitions, patterns](../src/parser.cr)
 * [x] [Data structures for the types](../src/types.cr)
 * [x] [Type unification algorithm](../src/unifier.cr)
 * [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
-* [ ] Pattern matching algorithm (with exhaustiveness checking)
+* [x] [Pattern matching algorithm](../src/pattern_matcher.cr)
+* [ ] [Web based playground]()
 * [ ] JavaScript values for specific types
 * [ ] JavaScript pattern matching function
 

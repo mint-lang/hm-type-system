@@ -2,6 +2,7 @@ module HM
   # This class is useful for checking a type environment for soundess
   # (all types are valid and complete).
   class Environment
+    # A helper class to keep track of the stack.
     class Stack(T) < Array(T)
       def with(item : T)
         push(item)
