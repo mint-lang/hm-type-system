@@ -42,7 +42,7 @@ module HM
       fields =
         parameters.map { |parameter| Field.new(nil, parameter) }
 
-      [Type.new(name, fields)] of Checkable
+      Type.new(name, fields)
     end
   end
 
@@ -52,6 +52,10 @@ module HM
     getter item : Checkable
 
     def initialize(@name, @item)
+    end
+
+    def variable?
+      item.is_a?(Variable)
     end
   end
 

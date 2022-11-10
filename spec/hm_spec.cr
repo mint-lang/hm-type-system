@@ -223,4 +223,64 @@ describe HM do
     }
     TYPE
   )
+
+  it "pattern matching" do
+    source = <<-TYPE
+    type Array(a)
+    type String
+    type Number
+    type Bool
+
+    type Maybe(a) {
+      Just(a)
+      Nothing
+    }
+
+    type User {
+      name : Maybe(Maybe(String)),
+      active : Bool,
+      age : Number
+    }
+    TYPE
+
+    definitions =
+      HM::Parser.parse_definitions(source)
+
+    fail "Could not parse #{source}" unless definitions
+
+    environment =
+      HM::Environment.new(definitions)
+
+    fail "Environment not sound!" unless environment.sound?
+
+    type =
+      HM::Parser.parse("Array(Maybe(a))").not_nil!
+
+    matcher =
+      HM::PatternMatcher.new(environment)
+
+    result = matcher.calculate(
+      [
+        HM::ArrayMatcher.new([
+          HM::TypePattern.new("Just", [HM::VariablePattern.new("a")] of HM::Pattern),
+          HM::Spread.new("rest"),
+        ] of HM::Pattern),
+        HM::ArrayMatcher.new([
+          HM::TypePattern.new("Nothing", [] of HM::Pattern),
+        ] of HM::Pattern),
+      ] of HM::Pattern,
+      type)
+
+    if result
+      puts "Not covered branches:"
+      result[:not_covered].each do |x|
+        puts HM::Formatter.format(x)
+      end
+
+      puts "Unused patterns:"
+      result[:not_matched].each do |x|
+        puts x.format
+      end
+    end
+  end
 end

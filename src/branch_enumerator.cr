@@ -17,16 +17,16 @@ module HM
       @variable = 'a'.pred.to_s
     end
 
-    def possibilities(definition : Definition) : Array(Checkable)
+    def possibilities(definition : Definition, parameters = [] of Array(Checkable)) : Array(Checkable)
       case fields = definition.fields
       in Array(Variant)
-        possibilities(fields)
+        possibilities(fields, parameters)
       in Array(Field)
         possibilities(definition.name, fields)
       end
     end
 
-    def possibilities(variants : Array(Variant)) : Array(Checkable)
+    def possibilities(variants : Array(Variant), parameters = [] of Array(Checkable)) : Array(Checkable)
       variants.map do |variant|
         # If a variant doesn't have any parameters we can just return a
         # type with it's name.
@@ -34,6 +34,7 @@ module HM
           Type.new(variant.name, [] of Field)
         else
           possibilities(variant.name, variant.items)
+            .flat_map { |possibility| fill_compose(possibility, parameters) }
         end
       end.flatten
     end
@@ -47,17 +48,19 @@ module HM
     end
 
     def possibilities(type : Type) : Array(Checkable)
+      parameters =
+        compose(type.fields.map { |field| possibilities(field.item) })
+
       # We try to look up the definition of the type by name. If the definition
       # doesn't have any fields we can just return a type with it's name.
       if definition = definitions.find(&.name.==(type.name))
         if definition.fields.empty?
-          [Type.new(definition.name, [] of Field)] of Checkable
+          fill_compose(definition.type, parameters)
         else
-          possibilities(definition)
+          possibilities(definition, compose(parameters))
         end
       else
-        # If there is no definition we just return the type itself.
-        [type] of Checkable
+        fill_compose(type, parameters)
       end
     end
 
@@ -77,6 +80,26 @@ module HM
           end
 
         Type.new(prefix, named_fields).as(Checkable)
+      end
+    end
+
+    def fill_compose(type : Checkable, replacements = [] of Array(Checkable)) : Array(Checkable)
+      case type
+      in Type
+        replacements.map do |parameters|
+          fields =
+            type.fields.zip(parameters).map do |(field, parameter)|
+              if field.variable?
+                Field.new(field.name, parameter)
+              else
+                field
+              end
+            end
+
+          Type.new(type.name, fields).as(Checkable)
+        end
+      in Variable
+        [type.as(Checkable)]
       end
     end
 
