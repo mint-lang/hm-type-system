@@ -12,7 +12,7 @@ This repository contains:
 * [x] [Type unification algorithm](../src/unifier.cr)
 * [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
 * [x] [Pattern matching algorithm](../src/pattern_matcher.cr)
-* [ ] [Web based playground]()
+* [ ] [Web based playground](..src/playground.cr)
 * [ ] JavaScript values for specific types
 * [ ] JavaScript pattern matching function
 

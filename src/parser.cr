@@ -1,5 +1,5 @@
 module HM
-  # This parser was originally migrated from the main mint-lang/mint repository.
+  # This parser was originally taken from the main mint-lang/mint repository.
   class Parser
     # The position of the cursor, which is at the character we are currently
     # parsing.
