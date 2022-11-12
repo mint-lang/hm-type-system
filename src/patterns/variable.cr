@@ -1,6 +1,6 @@
 module HM
   module Patterns
-    # This pattern matches everything and points it to a variable.
+    # This pattern matches anythig to a variable.
     class Variable < Pattern
       getter name : String
 

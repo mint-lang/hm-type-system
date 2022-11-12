@@ -1,11 +1,11 @@
 module HM
   module Patterns
-    # This pattern matches a type and it's field to the given patterns.
+    # This pattern matches a types field to the pattern.
     class Field < Pattern
-      getter patterns : ::Array(Pattern)
+      getter pattern : Pattern
       getter name : String
 
-      def initialize(@name, @patterns)
+      def initialize(@name, @pattern)
       end
 
       def matches?(type : Checkable) : Bool | Nil
@@ -16,19 +16,12 @@ module HM
           field =
             type.fields.find(&.name.==(name))
 
-          field && patterns.all? do |pattern|
-            pattern.matches?(field.item)
-          end
+          field && pattern.matches?(field.item)
         end
       end
 
       def format : String
-        formatted =
-          patterns
-            .map(&.format)
-            .join(", ")
-
-        "#{name}: #{formatted}"
+        "#{name}: #{pattern.format}"
       end
     end
   end

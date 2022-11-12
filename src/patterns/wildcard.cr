@@ -1,6 +1,6 @@
 module HM
   module Patterns
-    # This pattern matches anything but does not assign it to any variable.
+    # This pattern matches everyting to be discarded.
     class Wildcard < Pattern
       def matches?(type : Checkable) : Bool | Nil
         true

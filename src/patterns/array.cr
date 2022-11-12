@@ -1,5 +1,6 @@
 module HM
   module Patterns
+    # A pattern that matches arrays.
     class Array < Pattern
       getter patterns : ::Array(Pattern)
 
@@ -27,12 +28,7 @@ module HM
           return false if spreads.size > 1
 
           patterns.all? do |pattern|
-            case pattern
-            in Spread
-              true
-            in Pattern
-              pattern.matches?(type.fields.first.item)
-            end
+            pattern.matches?(type.fields.first.item)
           end
         end
       end
