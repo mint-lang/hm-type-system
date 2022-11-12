@@ -226,20 +226,23 @@ describe HM do
 
   it "pattern matching" do
     source = <<-TYPE
-    type Array(a)
-    type String
-    type Number
-    type Bool
+    type A
+    type B
 
-    type Maybe(a) {
-      Just(a)
-      Nothing
+    type C {
+      X
+      Y
     }
 
-    type User {
-      name : Maybe(Maybe(String)),
-      active : Bool,
-      age : Number
+    type E {
+      O
+      P
+    }
+
+    type D(a, b) {
+      E(a, b)
+      F(a)
+      G
     }
     TYPE
 
@@ -254,22 +257,29 @@ describe HM do
     fail "Environment not sound!" unless environment.sound?
 
     type =
-      HM::Parser.parse("Array(Maybe(a))").not_nil!
+      HM::Parser.parse("D(C,E)").not_nil!
 
-    matcher =
-      HM::PatternMatcher.new(environment)
+    enumerator =
+      HM::BranchEnumerator.new(definitions)
 
-    result = matcher.match(
-      [
-        HM::Patterns::Array.new([] of HM::Pattern),
-        HM::Patterns::Array.new([
-          HM::Patterns::Type.new("Just", [HM::Patterns::Variable.new("a")] of HM::Pattern),
-          HM::Patterns::Spread.new("rest"),
-        ] of HM::Pattern),
-        HM::Patterns::Array.new([
-          HM::Patterns::Type.new("Nothing", [] of HM::Pattern),
-        ] of HM::Pattern),
-      ] of HM::Pattern,
-      type)
+    enumerator
+      .possibilities(type)
+      .map { |branch| HM::Formatter.format(branch) }
+      .should eq([
+        "E(X, O)",
+        "E(X, P)",
+        "E(Y, O)",
+        "E(Y, P)",
+        "F(X)",
+        "F(Y)",
+        "G",
+      ])
+
+    # matcher =
+    #   HM::PatternMatcher.new(environment)
+
+    # result = matcher.match(
+    #   [] of HM::Pattern,
+    #   type)
   end
 end

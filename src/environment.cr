@@ -1,18 +1,9 @@
 module HM
   # This class is useful for checking a type environment for soundess
-  # (all types are valid and complete).
+  # (all types are valid and complete and there are no missing types).
   class Environment
-    # A helper class to keep track of the stack.
-    class Stack(T) < Array(T)
-      def with(item : T)
-        push(item)
-        result = yield
-        pop
-        result
-      end
-    end
-
     getter definitions : Array(Definition)
+    getter stack : Stack(Definition)
 
     def initialize(@definitions)
       # We have a stack to deal with recursion.
@@ -35,10 +26,10 @@ module HM
     def sound?(definition : Definition)
       # We treat things in the stack as sound when checking recursively
       # becuase the original call will be the last returned.
-      if @stack.includes?(definition)
+      if stack.includes?(definition)
         true
       else
-        @stack.with(definition) do
+        stack.with(definition) do
           (definition.fields.empty? ||
             variables(definition) == definition.parameters.map(&.name).to_set) &&
             sound?(definition.fields)

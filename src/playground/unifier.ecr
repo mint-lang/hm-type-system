@@ -1,0 +1,30 @@
+<h1>
+  Type Unification
+</h1>
+
+<p>
+  With this tool we can test whether two types can be unified and we can inspect the unified type.
+</p>
+
+<form>
+  <fieldset>
+    <legend>Type #1</legend>
+    <textarea rows="30" name="type1"><%= type1 %></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Type #2</legend>
+    <textarea rows="30" name="type2"><%= type2 %></textarea>
+  </fieldset>
+
+  <input type="submit" value="Unify">
+</form>
+
+<fieldset>
+  <legend>Result</legend>
+  <pre>
+    <code>
+      <%= result %>
+    </code>
+  </pre>
+</fieldset>

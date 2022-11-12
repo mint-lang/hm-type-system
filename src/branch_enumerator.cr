@@ -1,65 +1,110 @@
 module HM
-  # This class helps with enumerating all possible variations of a type
+  # This class helps with enumerating all possible combinations of a type or
   # definition which is useful during pattern matching since you need to
   # have possible branches for comparison.
   #
-  # Some important information:
-  # - an instance of branch enumerator should be only used once
-  # - it needs all definitions for the types to be useful
-  # - it doesn't check the defintions for soundness or even their exsistence
-  #
   # The resulting type list can be used to match against branches of the pattern
   # matching, using the unifier module.
+  #
+  # For example with the following environment:
+  #
+  #   type String
+  #   type Number
+  #
+  #   type Maybe(a) {
+  #     Nothing
+  #     Just(a)
+  #   }
+  #
+  #   type Status {
+  #     Loaded(content: String, Number, name: Maybe(String))
+  #     Loading
+  #     Idle
+  #   }
+  #
+  # For the Status type it will generate:
+  #
+  #  Loaded(content: String, Number, name: Nothing)
+  #  Loaded(content: String, Number, name: Just(String))
+  #  Loading
+  #  Idle
   class BranchEnumerator
     getter definitions : Array(Definition)
+    getter environment : Environment
+    getter stack : Stack(Definition)
 
     def initialize(@definitions)
-      @variable = 'a'.pred.to_s
+      @environment = Environment.new(definitions)
+      @stack = Stack(Definition).new
     end
 
-    def possibilities(definition : Definition, parameters = [] of Array(Checkable)) : Array(Checkable)
-      case fields = definition.fields
-      in Array(Variant)
-        possibilities(fields, parameters)
-      in Array(Field)
-        possibilities(definition.name, fields)
+    def possibilities(definition : Definition, type_fields = [] of Field) : Array(Checkable)
+      # We keep a stack to detect and limit recursion to (50 levels).
+      #
+      # TODO: Find a way to have cyclic dependencies instead of a stack.
+      if stack.includes?(definition) && stack.level > 50
+        [] of Checkable
+      else
+        stack.with(definition) do
+          # If the definition has no fields we can just return it's type since
+          # we don't need to calculate any possibilities.
+          if definition.fields.empty?
+            [definition.type] of Checkable
+          else
+            case fields = definition.fields
+            in Array(Variant)
+              fields.flat_map do |variant|
+                if variant.items.size == 0
+                  Type.new(variant.name, [] of Field)
+                else
+                  possibilities(variant.name, variant.items)
+                end
+              end
+            in Array(Field)
+              possibilities(definition.name, fields)
+            end
+          end
+        end.flat_map do |possibility|
+          # After we have the possibilities we merge every possibility with
+          # every possible compbination of the given paramteres.
+
+          # If either possibility is empty (no fields) or the parameters then
+          # it makes no sense to substitue so we can just short circut.
+          if type_fields.empty? || possibility.empty?
+            possibility
+          else
+            # We need to get the variables of the possibility to filter
+            # the parameters for only those variables.
+            variables =
+              environment.variables(possibility)
+
+            parameters =
+              begin
+                # We iterate the parameters first because we need the index
+                # to filter out the not used variables by this possibility.
+                items =
+                  type_fields.map_with_index do |field, index|
+                    if variables.includes?(definition.parameters[index].name)
+                      possibilities(field.item).map do |item|
+                        {definition.parameters[index].name, item}
+                      end
+                    end
+                  end.compact
+
+                compose(items)
+              end
+
+            substitute(possibility, parameters)
+          end
+        end
       end
     end
 
     def possibilities(type : Type) : Array(Checkable)
-      # Generate every possible combination of parameters of the fields, which
-      # we will use to backfill the other possibilities.
-      parameters =
-        compose(type.fields.map { |field| possibilities(field.item) })
-
-      # We try to look up the definition of the type by name. If the definition
-      # doesn't have any fields we can just return a type with it's name.
-      #
-      # If a definition doesn't have any fields it means that it's an abstract
-      # type which we can just fill with the parameters.
       if definition = definitions.find(&.name.==(type.name))
-        if definition.fields.empty?
-          fill(definition.type, parameters)
-        else
-          possibilities(definition, compose(parameters))
-        end
+        possibilities(definition, type.fields)
       else
-        fill(type, parameters)
-      end
-    end
-
-    # If a variant doesn't have any parameters we can just return a
-    # type with it's name, otherwise we generate all possibilities of
-    # variants and fill any variables with their actual types.
-    def possibilities(variants : Array(Variant), parameters = [] of Array(Checkable)) : Array(Checkable)
-      variants.flat_map do |variant|
-        if variant.items.size == 0
-          Type.new(variant.name, [] of Field)
-        else
-          possibilities(variant.name, variant.items).flat_map do |possibility|
-            fill(possibility, parameters)
-          end
-        end
+        [type] of Checkable
       end
     end
 
@@ -82,37 +127,28 @@ module HM
       end
     end
 
-    # Variables are replaced with an incrementing variable name.
     def possibilities(variable : Variable) : Array(Checkable)
-      @variable =
-        @variable.succ
-
-      [Variable.new(@variable)] of Checkable
+      [variable] of Checkable
     end
 
-    # Generates possibilities of the type by filling variables with their
-    # possible variations.
-    def fill(type : Checkable, replacements = [] of Array(Checkable)) : Array(Checkable)
-      case type
-      in Type
-        if replacements.empty?
-          [type.as(Checkable)]
-        else
-          replacements.map do |parameters|
-            fields =
-              type.fields.zip(parameters).map do |(field, parameter)|
-                if field.variable?
-                  Field.new(field.name, parameter)
-                else
-                  field
-                end
-              end
-
-            Type.new(type.name, fields).as(Checkable)
-          end
+    # Substitues the all combination of parameters in the slots (variables) of
+    # the type, or returns the list of possible parameters of a variable.
+    #
+    #   a, [[{"a", "Type1"}], [{"a", "Type2"}]]
+    #     ["Type1", "Type2"]
+    #
+    #   Type(a), [[{"a", "Type1"}], [{"a", "Type2"}]]
+    #     ["Type(Type1)", "Type(Type2)"]
+    def substitute(type, parameters = [] of Array({String, Checkable})) : Array(Checkable)
+      parameters.flat_map do |items|
+        case type
+        in Type
+          compose(type.fields.map { |field| substitute(field.item, [items]) })
+            .map { |fields| fields.map { |item| Field.new(nil, item) } }
+            .map { |fields| Type.new(type.name, fields) }
+        in Variable
+          items.find { |x| x[0] == type.name }.try(&.last) || [] of Checkable
         end
-      in Variable
-        [type.as(Checkable)]
       end
     end
 

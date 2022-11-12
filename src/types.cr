@@ -10,6 +10,12 @@ module HM
 
     def initialize(@name)
     end
+
+    # This method is needed so we can call empty? on Checkable objects.
+    # A variable is considered empty.
+    def empty?
+      true
+    end
   end
 
   # Represents a type which has a name and can have many fields.
@@ -25,6 +31,11 @@ module HM
     # are the same.
     def record?
       fields.any? && fields.none?(&.name.nil?)
+    end
+
+    # A type is considered empty if it has no fields.
+    def empty?
+      fields.empty?
     end
   end
 

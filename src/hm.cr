@@ -1,4 +1,5 @@
 require "./types"
+require "./stack"
 require "./branch_enumerator"
 require "./unifier"
 require "./environment"

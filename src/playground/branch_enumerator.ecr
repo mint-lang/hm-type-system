@@ -1,0 +1,30 @@
+<h1>
+  Branch Enumerator
+</h1>
+
+<p>
+  With this tool we can enumerate all possible variations (branches) of a type.
+</p>
+
+<form>
+  <fieldset>
+    <legend>Type Definitions</legend>
+    <textarea rows="30" name="types"><%= types %></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Type</legend>
+    <textarea rows="30" name="type"><%= type %></textarea>
+  </fieldset>
+
+  <input type="submit" value="Calculate Branches">
+</form>
+
+<fieldset>
+  <legend>Result</legend>
+  <pre>
+    <code>
+      <%= result %>
+    </code>
+  </pre>
+</fieldset>

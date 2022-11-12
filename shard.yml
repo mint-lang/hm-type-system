@@ -1,9 +1,17 @@
-name: hm
-version: 0.1.0
+name: hm-type-system
+version: 1.0.0
+crystal: 1.6.2
+license: MIT
+
+dependencies:
+  kemal:
+    github: kemalcr/kemal
+
+targets:
+  playground:
+    main: src/playground.cr
 
 authors:
   - Gusztáv Szikszai <guszti5@hotmail.com>
 
-crystal: 1.6.0
 
-license: MIT
