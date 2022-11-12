@@ -1,44 +1,40 @@
 module HM
-  module Formatter
-    extend self
+  class Formatter
+    # This hash is to store the new name of variable.
+    getter mapping : Hash(Variable, String) = {} of Variable => String
 
-    # Returns the formatted version of the type.
-    def format(type : Checkable)
-      format(type, { {} of Variable => String, "a" })[1]
+    # This keeps track of the current variable name.
+    getter variable : String = 'a'.pred.to_s
+
+    def self.format(type : Checkable)
+      new.format(type)
     end
 
-    # This method formats a type and replaces free variables with a incremental
-    # characters (a, b, c, etc...).
-    def format(type : Checkable, memo) : Tuple(Tuple(Hash(Variable, String), String), String)
+    # Returns the string representation of the type or variable in the format
+    # the parser can parse.
+    # - The type should be normalized before formatting.
+    # - Variables are replaced with a sequential names (a, b, c)
+    def format(type : Checkable) : String
       case type
       in Variable
-        memo[0][type]?.try do |value|
-          {memo, value}
-        end || begin
-          memo[0][type] =
-            memo[1]
-
-          { {memo[0], memo[1].succ}, memo[1] }
-        end
+        mapping[type]? || (mapping[type] = @variable = @variable.succ)
       in Type
         if type.fields.empty?
-          {memo, "#{type.name}"}
+          type.name
         else
-          next_memo, fields =
-            type.fields.reduce({memo, [] of String}) do |(item, values), field|
-              next_memo, formatted =
-                format(field.item, item)
+          fields =
+            type.fields.map do |field|
+              formatted =
+                format(field.item)
 
-              values << if field.name
+              if field.name
                 "#{field.name}: #{formatted}"
               else
                 formatted
               end
-
-              {next_memo, values}
             end
 
-          {next_memo, "#{type.name}(#{fields.join(", ")})"}
+          "#{type.name}(#{fields.join(", ")})"
         end
       end
     end
