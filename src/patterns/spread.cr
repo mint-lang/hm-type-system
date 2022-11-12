@@ -10,6 +10,10 @@ module HM
       def initialize(@name)
       end
 
+      def matches?(pattern : Pattern) : Bool | Nil
+        pattern.is_a?(Spread)
+      end
+
       def matches?(type : Checkable) : Bool | Nil
         true
       end

@@ -41,15 +41,21 @@ module HM
     # - must have a definition
     # - must match the type definition
     # - can't be any unsound fields
+    # - tuples are unique in the way that they don't need definitions
     def sound?(type : Type)
-      definition =
-        definitions.find(&.name.==(type.name))
+      case type.name
+      when "Tuple"
+        sound?(type.fields)
+      else
+        definition =
+          definitions.find(&.name.==(type.name))
 
-      return unless definition
+        return unless definition
 
-      sound?(definition) &&
-        sound?(type.fields) &&
-        HM::Unifier.matches?(type, definition.type)
+        sound?(definition) &&
+          sound?(type.fields) &&
+          HM::Unifier.matches?(type, definition.type)
+      end
     end
 
     def sound?(variants : Array(Variant))

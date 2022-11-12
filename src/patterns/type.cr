@@ -8,6 +8,17 @@ module HM
       def initialize(@name, @patterns)
       end
 
+      def matches?(pattern : Pattern) : Bool | Nil
+        case pattern
+        when Type
+          pattern.name == name &&
+            pattern.patterns.size == patterns.size &&
+            pattern.patterns.zip(patterns) do |pattern1, pattern2|
+              pattern1.matches?(pattern2)
+            end
+        end
+      end
+
       def matches?(type : Checkable) : Bool | Nil
         case type
         in HM::Variable
@@ -22,12 +33,16 @@ module HM
       end
 
       def format : String
-        formatted =
-          patterns
-            .map(&.format)
-            .join(", ")
+        if patterns.empty?
+          name
+        else
+          formatted =
+            patterns
+              .map(&.format)
+              .join(", ")
 
-        "#{name}(#{formatted})"
+          "#{name}(#{formatted})"
+        end
       end
     end
   end

@@ -262,9 +262,11 @@ describe HM do
     enumerator =
       HM::BranchEnumerator.new(definitions)
 
-    enumerator
-      .possibilities(type)
-      .map { |branch| HM::Formatter.format(branch) }
+    branches =
+      enumerator
+        .possibilities(type)
+
+    branches.map { |branch| HM::Formatter.format(branch) }
       .should eq([
         "E(X, O)",
         "E(X, P)",
@@ -274,12 +276,47 @@ describe HM do
         "F(Y)",
         "G",
       ])
+  end
 
-    # matcher =
-    #   HM::PatternMatcher.new(environment)
+  it "pattern matching" do
+    source = <<-TYPE
+    type String
+    type Array(a)
+    type Maybe(a) {
+      Just(a)
+      Nothing
+    }
+    TYPE
 
-    # result = matcher.match(
-    #   [] of HM::Pattern,
-    #   type)
+    definitions =
+      HM::Parser.parse_definitions(source)
+
+    fail "Could not parse #{source}" unless definitions
+
+    environment =
+      HM::Environment.new(definitions)
+
+    fail "Environment not sound!" unless environment.sound?
+
+    type =
+      HM::Parser.parse("Array(Tuple(String, String))").not_nil!
+
+    enumerator =
+      HM::BranchEnumerator.new(definitions)
+
+    branches =
+      enumerator
+        .possibilities(type)
+
+    branches.map { |branch| HM::Formatter.format(branch) }
+      .should eq([
+        "Array(Tuple(String, String))",
+      ])
+
+    branches.each do |branch|
+      HM::PatternGenerator.generate(branch).each do |pattern|
+        puts pattern.format
+      end
+    end
   end
 end

@@ -6,6 +6,10 @@ module HM
         true
       end
 
+      def matches?(type : Pattern) : Bool | Nil
+        true
+      end
+
       def format : String
         "_"
       end

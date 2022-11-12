@@ -19,7 +19,7 @@ module HM
       in Variable
         mapping[type]? || (mapping[type] = @variable = @variable.succ)
       in Type
-        if type.fields.empty?
+        if type.empty?
           type.name
         else
           fields =

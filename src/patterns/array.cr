@@ -7,6 +7,17 @@ module HM
       def initialize(@patterns : ::Array(Pattern))
       end
 
+      def matches?(pattern : Pattern) : Bool | Nil
+        case pattern
+        when Array
+          # TODO: Match empties singleones and spreads..
+          pattern.patterns.size == patterns.size &&
+            pattern.patterns.zip(patterns) do |pattern1, pattern2|
+              pattern1.matches?(pattern2)
+            end
+        end
+      end
+
       def matches?(type : Checkable) : Bool | Nil
         case type
         in HM::Variable

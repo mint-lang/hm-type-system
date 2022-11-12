@@ -7,6 +7,10 @@ module HM
       def initialize(@name)
       end
 
+      def matches?(pattern : Pattern) : Bool | Nil
+        pattern.is_a?(Variable)
+      end
+
       def matches?(type : Checkable) : Bool | Nil
         case type
         in HM::Variable

@@ -29,6 +29,8 @@ module HM
   #  Loading
   #  Idle
   class BranchEnumerator
+    include Composable
+
     getter definitions : Array(Definition)
     getter environment : Environment
     getter stack : Stack(Definition)
@@ -110,9 +112,9 @@ module HM
 
     def possibilities(prefix : String, fields : Array(Field)) : Array(Checkable)
       parameters =
-        fields.map { |field| possibilities(field.item) }
+        compose(fields.map { |field| possibilities(field.item) })
 
-      compose(parameters).map do |item|
+      parameters.map do |item|
         named_fields =
           item.map do |field|
             # We need to keep the name of the field but since compose doesn't
@@ -149,43 +151,6 @@ module HM
         in Variable
           items.find { |x| x[0] == type.name }.try(&.last) || [] of Checkable
         end
-      end
-    end
-
-    # This method composes the parts possibitilites into a flat list which
-    # covers all posibilities.
-    #
-    #   compose([["a"], ["b"], ["c"]])
-    #     ["a", "b", "c"]
-    #
-    #   compose([["a"], ["b", "c"], ["d"]])
-    #     [
-    #       ["a", "b", "d"],
-    #       ["a", "c", "d"]
-    #     ]
-    #
-    # Takes a value from first the first column and adds to it all the possibile
-    # combination of values from the rest of the columns, recursively.
-    private def compose(items : Array(Array(T))) : Array(Array(T)) forall T
-      case items.size
-      when 0
-        [] of Array(T)
-      when 1
-        items[0].map { |item| [item] }
-      else
-        result =
-          [] of Array(T)
-
-        rest =
-          compose(items[1...])
-
-        items[0].each do |item|
-          rest.each do |sub|
-            result << [item] + sub
-          end
-        end
-
-        result
       end
     end
   end

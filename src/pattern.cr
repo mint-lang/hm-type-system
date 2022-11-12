@@ -1,6 +1,8 @@
 module HM
   # Defines the interface for a pattern which is used in pattern matching.
   abstract class Pattern
+    abstract def matches?(pattern : Pattern) : Bool | Nil
+
     # This method should return true / false / nil depending the pattern
     # matches the given type.
     abstract def matches?(type : Checkable) : Bool | Nil

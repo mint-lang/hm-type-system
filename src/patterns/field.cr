@@ -8,6 +8,14 @@ module HM
       def initialize(@name, @pattern)
       end
 
+      def matches?(pattern : Pattern) : Bool | Nil
+        case pattern
+        when Field
+          pattern.name == name &&
+            pattern.pattern.matches?(self.pattern)
+        end
+      end
+
       def matches?(type : Checkable) : Bool | Nil
         case type
         in HM::Variable
