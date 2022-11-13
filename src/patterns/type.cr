@@ -13,7 +13,7 @@ module HM
         when Type
           pattern.name == name &&
             pattern.patterns.size == patterns.size &&
-            pattern.patterns.zip(patterns).all? do |pattern1, pattern2|
+            patterns.zip(pattern.patterns).all? do |pattern1, pattern2|
               pattern1.matches?(pattern2)
             end
         end

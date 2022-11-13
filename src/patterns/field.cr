@@ -11,8 +11,7 @@ module HM
       def matches?(pattern : Pattern) : Bool | Nil
         case pattern
         when Field
-          pattern.name == name &&
-            pattern.pattern.matches?(self.pattern)
+          pattern.name == name && self.pattern.matches?(pattern)
         end
       end
 

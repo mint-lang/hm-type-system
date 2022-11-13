@@ -309,14 +309,14 @@ describe HM do
         HM::Patterns::Array.new([
           HM::Patterns::Spread.new("rest"),
           HM::Patterns::Tuple.new([
-            HM::Patterns::Type.new("String"),
-            HM::Patterns::Type.new("String"),
+            HM::Patterns::Variable.new("String"),
+            HM::Patterns::Variable.new("a"),
           ] of HM::Pattern),
         ] of HM::Pattern),
         HM::Patterns::Array.new([
           HM::Patterns::Tuple.new([
-            HM::Patterns::Type.new("String"),
-            HM::Patterns::Type.new("String"),
+            HM::Patterns::Variable.new("a"),
+            HM::Patterns::Variable.new("String"),
           ] of HM::Pattern),
         ] of HM::Pattern),
         HM::Patterns::Array.new([] of HM::Pattern),

@@ -14,7 +14,6 @@ module HM
       def matches?(pattern : Pattern) : Bool | Nil
         case pattern
         when Array
-          # TODO: Match empties singleones and spreads..
           pattern.patterns.size == patterns.size &&
             spreads.size == pattern.spreads.size &&
             others.zip(pattern.others).all? do |pattern1, pattern2|
