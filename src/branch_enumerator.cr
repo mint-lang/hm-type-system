@@ -31,13 +31,10 @@ module HM
   class BranchEnumerator
     include Composable
 
-    getter definitions : Array(Definition)
+    getter stack : Stack(Definition) = Stack(Definition).new
     getter environment : Environment
-    getter stack : Stack(Definition)
 
-    def initialize(@definitions)
-      @environment = Environment.new(definitions)
-      @stack = Stack(Definition).new
+    def initialize(@environment)
     end
 
     def possibilities(definition : Definition, type_fields = [] of Field) : Array(Checkable)
@@ -68,7 +65,7 @@ module HM
           end
         end.flat_map do |possibility|
           # After we have the possibilities we merge every possibility with
-          # every possible compbination of the given paramteres.
+          # every possible combination of the paramteres.
 
           # If either possibility is empty (no fields) or the parameters then
           # it makes no sense to substitue so we can just short circut.
@@ -103,7 +100,7 @@ module HM
     end
 
     def possibilities(type : Type) : Array(Checkable)
-      if definition = definitions.find(&.name.==(type.name))
+      if definition = environment.definitions.find(&.name.==(type.name))
         possibilities(definition, type.fields)
       else
         [type] of Checkable

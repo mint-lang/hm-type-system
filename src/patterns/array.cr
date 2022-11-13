@@ -3,8 +3,12 @@ module HM
     # A pattern that matches arrays.
     class Array < Pattern
       getter patterns : ::Array(Pattern)
+      getter spreads : ::Array(Spread)
+      getter others : ::Array(Pattern)
 
       def initialize(@patterns : ::Array(Pattern))
+        @spreads = patterns.select(Spread)
+        @others = patterns.reject(Spread)
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
@@ -12,7 +16,8 @@ module HM
         when Array
           # TODO: Match empties singleones and spreads..
           pattern.patterns.size == patterns.size &&
-            pattern.patterns.zip(patterns) do |pattern1, pattern2|
+            spreads.size == pattern.spreads.size &&
+            others.zip(pattern.others).all? do |pattern1, pattern2|
               pattern1.matches?(pattern2)
             end
         end
@@ -30,9 +35,6 @@ module HM
           # We return true since it matches an empty array, which is
           # technically correct but not exhaustive (obviously).
           return true if patterns.size == 0
-
-          spreads =
-            patterns.select { |item| item.is_a?(Spread) }
 
           # If we have multiple spread patterns then we can't match since
           # we don't know how to distribute the items between spreads.

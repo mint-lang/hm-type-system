@@ -63,7 +63,7 @@ macro expect_branches(expected, source)
     fail "Environment not sound!" unless environment.sound?
 
     enumerator =
-      HM::BranchEnumerator.new(definitions)
+      HM::BranchEnumerator.new(environment)
 
     enumerator
       .possibilities(definitions.last)
@@ -260,7 +260,7 @@ describe HM do
       HM::Parser.parse("D(C,E)").not_nil!
 
     enumerator =
-      HM::BranchEnumerator.new(definitions)
+      HM::BranchEnumerator.new(environment)
 
     branches =
       enumerator
@@ -301,22 +301,30 @@ describe HM do
     type =
       HM::Parser.parse("Array(Tuple(String, String))").not_nil!
 
-    enumerator =
-      HM::BranchEnumerator.new(definitions)
+    matcher =
+      HM::PatternMatcher.new(environment)
 
-    branches =
-      enumerator
-        .possibilities(type)
+    result =
+      matcher.match_patterns([
+        HM::Patterns::Array.new([
+          HM::Patterns::Spread.new("rest"),
+          HM::Patterns::Tuple.new([
+            HM::Patterns::Type.new("String"),
+            HM::Patterns::Type.new("String"),
+          ] of HM::Pattern),
+        ] of HM::Pattern),
+        HM::Patterns::Array.new([
+          HM::Patterns::Tuple.new([
+            HM::Patterns::Type.new("String"),
+            HM::Patterns::Type.new("String"),
+          ] of HM::Pattern),
+        ] of HM::Pattern),
+        HM::Patterns::Array.new([] of HM::Pattern),
+      ] of HM::Pattern, type)
 
-    branches.map { |branch| HM::Formatter.format(branch) }
-      .should eq([
-        "Array(Tuple(String, String))",
-      ])
+    fail "Type not sound!" unless result
 
-    branches.each do |branch|
-      HM::PatternGenerator.generate(branch).each do |pattern|
-        puts pattern.format
-      end
-    end
+    result[:not_covered].should be_empty
+    result[:not_matched].should be_empty
   end
 end

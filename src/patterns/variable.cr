@@ -8,7 +8,7 @@ module HM
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
-        pattern.is_a?(Variable)
+        true
       end
 
       def matches?(type : Checkable) : Bool | Nil

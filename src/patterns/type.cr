@@ -5,7 +5,7 @@ module HM
       getter patterns : ::Array(Pattern)
       getter name : String
 
-      def initialize(@name, @patterns)
+      def initialize(@name, @patterns = [] of Pattern)
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
@@ -13,7 +13,7 @@ module HM
         when Type
           pattern.name == name &&
             pattern.patterns.size == patterns.size &&
-            pattern.patterns.zip(patterns) do |pattern1, pattern2|
+            pattern.patterns.zip(patterns).all? do |pattern1, pattern2|
               pattern1.matches?(pattern2)
             end
         end

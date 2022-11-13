@@ -11,7 +11,7 @@ module HM
         case pattern
         when Tuple
           pattern.patterns.size == patterns.size &&
-            pattern.patterns.zip(patterns) do |pattern1, pattern2|
+            pattern.patterns.zip(patterns).all? do |pattern1, pattern2|
               pattern1.matches?(pattern2)
             end
         end
