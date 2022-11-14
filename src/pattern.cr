@@ -1,6 +1,7 @@
 module HM
   # Defines the interface for a pattern which is used in pattern matching.
   abstract class Pattern
+    # This methods allows patterns to match other patterns.
     abstract def matches?(pattern : Pattern) : Bool | Nil
 
     # This method should return true / false / nil depending the pattern

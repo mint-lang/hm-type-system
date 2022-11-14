@@ -13,44 +13,39 @@ module HM
     # by the parser.
     getter original : String
 
+    # These methods parses an entity from the string, returns nil if it cannot
+    # parse. The full string needs to be parsed for it to be successful.
+    #
+    #   HM.type("Test")  -> type
+    #   HM.type("Test(") -> nil
+    #   HM.variable("a") -> variable
+
+    def self.definitions(input : String) : Array(Definition) | Nil
+      Parser.new(input).parse { many { definition } }
+    end
+
+    def self.patterns(input : String) : Array(Pattern) | Nil
+      Parser.new(input).parse { many { pattern } }
+    end
+
+    def self.definition(input : String) : Definition | Nil
+      Parser.new(input).parse { definition }
+    end
+
+    def self.variable(input : String) : Variable | Nil
+      Parser.new(input).parse { variable }
+    end
+
+    def self.pattern(input : String) : Pattern | Nil
+      Parser.new(input).parse { pattern }
+    end
+
+    def self.type(input : String) : Checkable | Nil
+      Parser.new(input).parse { type }
+    end
+
     def initialize(@original : String)
       @input = @original.chars
-    end
-
-    # This method parses a type or a variable from the string, returns nil if it
-    # cannot parse. The full string needs to be parsed for it to be successful.
-    #
-    #   HM.parse("Test") -> true
-    #   HM.parse("Test(") -> false
-    #   HM.parse("Test(a)") -> true
-    def self.parse(input : String) : Checkable | Nil
-      parser =
-        Parser.new(input)
-
-      result =
-        parser.type || parser.variable
-
-      result if parser.eos?
-    end
-
-    def self.parse_definition(input : String) : Definition | Nil
-      parser =
-        Parser.new(input)
-
-      result =
-        parser.type_definition
-
-      result if parser.eos?
-    end
-
-    def self.parse_definitions(input : String) : Array(Definition) | Nil
-      parser =
-        Parser.new(input)
-
-      result =
-        parser.many { parser.type_definition }
-
-      result if parser.eos?
     end
 
     # Moves the cursor forward.
@@ -107,18 +102,26 @@ module HM
       end
     end
 
-    # Returns the current word at the cursor.
+    # Consumes a keyword and returns it if successful.
     def keyword!(expected : String) : String | Nil
-      start do
-        word = gather { chars { |char| !char.ascii_whitespace? } }
+      start do |start_position|
+        word =
+          gather do
+            chars do |char|
+              !char.ascii_whitespace? &&
+                @position < start_position + expected.size
+            end
+          end
 
         next unless word
         next unless word == expected
+
         word
       end
     end
 
-    def keyword?(word)
+    # Returns whether or not the word is at the current position.
+    def keyword?(word : String) : Bool
       word.each_char_with_index.all? do |char, i|
         input[position + i]? == char
       end
@@ -127,10 +130,15 @@ module HM
     # Starts to parse something, if the yielded value is nil then reset the
     # cursor where we started the parsing.
     def start
-      start_position = position
+      start_position =
+        position
 
-      node = yield position
-      @position = start_position unless node
+      node =
+        yield position
+
+      @position =
+        start_position unless node
+
       node
     end
 
@@ -149,6 +157,14 @@ module HM
       end
     end
 
+    # Try to parse something and return it if was successfull and we are
+    # at the end of the input.
+    def parse
+      result = with self yield
+      result if eos?
+    end
+
+    # Parse many things separated by whitespace.
     def many(parse_whitespace : Bool = true, &block : -> T?) : Array(T) forall T
       result = [] of T
 
@@ -194,15 +210,48 @@ module HM
       result
     end
 
+    # Parses something which is surrounded by start char and end char.
+    def surrounded(start_char : Char, end_char : Char)
+      return unless char! start_char
+      result = yield
+      result if char! end_char
+    end
+
+    # Parses a list of things which are surrounded by start char and end char.
+    def list(start_char : Char, end_char : Char, separator : Char, &block : -> T?) : Array(T) | Nil forall T
+      surrounded(start_char, end_char) do
+        list(separator: separator, terminator: end_char) { yield }
+      end
+    end
+
     # Parses a type.
     def type : Checkable | Nil
       start do
-        next unless name = type_identifier
+        next unless name = identifier
+        Type.new(name, fields || [] of Field).as(Checkable)
+      end
+    end
 
+    # Parses a definition.
+    def definition
+      start do
+        next unless keyword! "type"
+
+        whitespace
+        next unless name = identifier
+        whitespace
+
+        parameters =
+          list(start_char: '(', end_char: ')', separator: ',') { variable }
+
+        whitespace
         fields =
-          if char! '('
-            items =
-              list(separator: ',', terminator: ')') { type_field || type || variable }
+          surrounded(start_char: '{', end_char: '}') do
+            variants =
+              many { variant.as(Variant | Nil) }
+
+            if variants.empty?
+              list(separator: ',', terminator: '}') { field || type || variable }
                 .map do |item|
                   case item
                   when Field
@@ -211,109 +260,130 @@ module HM
                     Field.new(name: nil, item: item)
                   end
                 end
-
-            if char! ')'
-              items
             else
-              next
+              variants
             end
-          else
-            [] of Field
           end
 
-        Type.new(name, fields).as(Checkable)
+        Definition.new(name, parameters || [] of Variable, fields || [] of Field)
       end
     end
 
-    def type_definition(parse_keyword : Bool = true)
+    # Parses a variable.
+    def variable : Variable | Nil
       start do
-        next if parse_keyword && !keyword! "type"
-
-        whitespace
-        next unless name = type_identifier
-        whitespace
-
-        parameters =
-          if char! '('
-            items =
-              list(separator: ',', terminator: ')') do
-                variable.as(Variable | Nil)
-              end
-
-            if char! ')'
-              items
-            else
-              next
-            end
-          else
-            [] of Variable
-          end
-
-        whitespace
-
-        fields =
-          if char! '{'
-            items =
-              many do
-                type_variant.as(Variant | Nil)
-              end
-
-            items = type_fields if items.empty?
-
-            if char! '}'
-              items
-            else
-              next
-            end
-          else
-            [] of Variant
-          end
-
-        Definition.new(name, parameters, fields)
-      end
-    end
-
-    # Parses a type definition field.
-    def type_variant : Variant | Nil
-      start do
-        key = type_identifier
-
-        next unless key
-        whitespace
-
-        fields =
-          if char! '('
-            items = type_fields
-
-            if char! ')'
-              items
-            else
-              next
-            end
-          else
-            [] of Field
-          end
-
-        return unless fields
-
-        Variant.new(key, fields)
-      end
-    end
-
-    def type_fields
-      list(separator: ',', terminator: ')') { type_field || type || variable }
-        .map do |item|
-          case item
-          when Field
-            item
-          else
-            Field.new(name: nil, item: item)
-          end
+        value = gather do
+          next unless char.ascii_lowercase?
+          ascii_letters_or_numbers
         end
+
+        next unless value
+
+        Variable.new(value)
+      end
     end
 
-    # Parses a type field.
-    def type_field
+    # Parses a pattern.
+    def pattern
+      wildcard_pattern ||
+        variable_pattern ||
+        spread_pattern ||
+        array_pattern ||
+        tuple_pattern ||
+        field_pattern ||
+        type_pattern
+    end
+
+    # The methods are parsing specific patterns.
+
+    def wildcard_pattern : Patterns::Wildcard | Nil
+      start { Patterns::Wildcard.new if char! '_' }
+    end
+
+    def variable_pattern : Patterns::Variable | Nil
+      variable = self.variable
+      Patterns::Variable.new(variable.name) if variable
+    end
+
+    def spread_pattern : Patterns::Spread | Nil
+      start do
+        next unless keyword! "..."
+
+        variable = self.variable
+        Patterns::Spread.new(variable.name) if variable
+      end
+    end
+
+    def array_pattern : Patterns::Array | Nil
+      patterns =
+        list(start_char: '[', end_char: ']', separator: ',') do
+          pattern.as(Pattern | Nil)
+        end
+
+      Patterns::Array.new(patterns) if patterns
+    end
+
+    def tuple_pattern : Patterns::Tuple | Nil
+      patterns =
+        list(start_char: '{', end_char: '}', separator: ',') do
+          pattern.as(Pattern | Nil)
+        end
+
+      Patterns::Tuple.new(patterns) if patterns
+    end
+
+    def field_pattern : Patterns::Field | Nil
+      start do
+        next unless variable = self.variable
+
+        whitespace
+        next unless char! ':'
+        whitespace
+
+        next unless pattern = self.pattern
+
+        Patterns::Field.new(variable.name, pattern)
+      end
+    end
+
+    def type_pattern : Patterns::Type | Nil
+      start do
+        next unless name = identifier
+
+        patterns =
+          list(start_char: '(', end_char: ')', separator: ',') do
+            pattern.as(Pattern | Nil)
+          end || [] of Pattern
+
+        Patterns::Type.new(name, patterns)
+      end
+    end
+
+    # The methods below are used by the main parses.
+
+    def fields : Array(Field) | Nil
+      list(start_char: '(', end_char: ')', separator: ',') do
+        field || type || variable
+      end.try(&.map do |item|
+        case item
+        when Field
+          item
+        else
+          Field.new(name: nil, item: item)
+        end
+      end)
+    end
+
+    def variant : Variant | Nil
+      start do
+        next unless key = identifier
+        whitespace
+
+        Variant.new(key, fields || [] of Field)
+      end
+    end
+
+    def field
       start do
         key = gather do
           next unless char.ascii_lowercase?
@@ -332,22 +402,7 @@ module HM
       end
     end
 
-    # Parses a variable.
-    def variable : Variable | Nil
-      start do
-        value = gather do
-          next unless char.ascii_lowercase?
-          ascii_letters_or_numbers
-        end
-
-        next unless value
-
-        Variable.new(value)
-      end
-    end
-
-    # Parses a type identifier.
-    def type_identifier : String?
+    def identifier : String?
       name = gather do
         return unless char.ascii_uppercase?
         ascii_letters_or_numbers
@@ -359,7 +414,7 @@ module HM
         if char == '.'
           other = start do
             step
-            next_part = type_identifier
+            next_part = identifier
             next unless next_part
             next_part
           end

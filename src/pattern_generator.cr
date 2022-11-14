@@ -4,6 +4,16 @@ module HM
 
     include Composable
 
+    # This method is used to build matching patterns for a type.
+    #
+    # There are two special types: Array and Tuple. Arrays generate three
+    # patterns for each combination of it's type:
+    #
+    # - [item, ...rest] matches arrays with infinite number of items
+    # - [item]          matches arrays with only one item (not really required)
+    # - []              matches empty arrays
+    #
+    # Tuples are special because they have their own pattern.
     def generate(type : Checkable) : Array(Pattern)
       case type
       in Variable

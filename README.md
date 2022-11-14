@@ -1,13 +1,13 @@
 # hm-type-system
 
-This repository contains a modified version of the Hindley-Milner type system which is used by the Mint programming language and can also be used by itself, in other programming languages or other use cases.
+This repository contains a modified version of the Hindley-Milner type system which is used by the Mint programming language and can also be used by itself in an other programming language or in other use cases.
 
 Most implementations of a Hindley-Milner type system is done in a functional programming language (Haskell mainly) and can be hard to understand. This implementation focuses on being readable, easily understandable and documented (in this readme and with comments) in an object oriented language.
 
 This repository contains:
 
 * [ ] [Formal grammar (PEG.js) for types, definitions and patterns](grammar/gammar.pegjs)
-* [ ] [Parser for the types, definitions, patterns](../src/parser.cr)
+* [x] [Parser for the types, definitions, patterns](../src/parser.cr)
 * [x] [Data structures for the types](../src/types.cr)
 * [x] [Type unification algorithm](../src/unifier.cr)
 * [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
@@ -99,12 +99,14 @@ All parts are available under the `HM` module.
 To parse a type, variable, definition or pattern you can use the `HM::Parser` class:
 
 ```crystal
-parser = HM::Parser.new
-parser.type("String")               # parses a type
-parser.variable("a")                # parses a variable
-parser.definition("type String")    # parses a type definition
-parser.pattern("[String, ...rest]") # parses a pattern
+parser = HM::Parser.new(input)
+parser.type       # parses a type
+parser.variable   # parses a variable
+parser.definition # parses a type definition
+parser.pattern    # parses a pattern
 ```
+
+If something cannot be parsed the method will return `nil`.
 
 ### Unification
 

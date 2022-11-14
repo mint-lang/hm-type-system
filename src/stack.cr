@@ -1,5 +1,5 @@
 module HM
-  # A helper class to keep track of the stack.
+  # A helper class to keep track of the stack (with levels).
   class Stack(T) < Array(T)
     getter level : Int32 = 0
 

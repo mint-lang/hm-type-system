@@ -2,8 +2,8 @@ require "./spec_helper"
 
 macro expect_not_unify(a, b)
   it "{{a.id}} vs {{b.id}}" do
-    type1 = HM::Parser.parse({{a}})
-    type2 = HM::Parser.parse({{b}})
+    type1 = HM::Parser.type({{a}}) || HM::Parser.variable({{a}})
+    type2 = HM::Parser.type({{b}}) || HM::Parser.variable({{b}})
 
     if type1 && type2
       result = HM::Unifier.unify(type1, type2)
@@ -19,8 +19,8 @@ end
 
 macro expect_unify(a, b, expected)
   it "{{a.id}} vs {{b.id}}" do
-    type1 = HM::Parser.parse({{a}})
-    type2 = HM::Parser.parse({{b}})
+    type1 = HM::Parser.type({{a}}) || HM::Parser.variable({{a}})
+    type2 = HM::Parser.type({{b}}) || HM::Parser.variable({{b}})
 
     if type1 && type2
       result = HM::Unifier.unify(type1, type2)
@@ -39,7 +39,7 @@ end
 macro expect_define_type(source)
   it "Defines type: {{source.id}}" do
     definitions =
-      HM::Parser.parse_definitions({{source}})
+      HM::Parser.definitions({{source}})
 
     fail "Could not parse {{source.id}}" unless definitions
 
@@ -53,7 +53,7 @@ end
 macro expect_branches(expected, source)
   it "Expands type: {{source.id}}" do
     definitions =
-      HM::Parser.parse_definitions({{source}})
+      HM::Parser.definitions({{source}})
 
     fail "Could not parse {{source.id}}" unless definitions
 
@@ -69,6 +69,72 @@ macro expect_branches(expected, source)
       .possibilities(definitions.last)
       .map { |branch| HM::Formatter.format(branch) }
       .should eq({{expected}})
+  end
+end
+
+macro expect_patterns(expected, source)
+  it "Expands type: {{source.id}}" do
+    definitions =
+      HM::Parser.definitions({{source}})
+
+    fail "Could not parse {{source.id}}" unless definitions
+
+    environment =
+      HM::Environment.new(definitions)
+
+    fail "Environment not sound!" unless environment.sound?
+
+    enumerator =
+      HM::BranchEnumerator.new(environment)
+
+    enumerator
+      .possibilities(definitions.last)
+      .flat_map { |branch| HM::PatternGenerator.generate(branch) }
+      .map(&.format)
+      .should eq({{expected}})
+  end
+end
+
+macro expect_matches(patterns, type, source)
+  it "Expands type: {{source.id}}" do
+    definitions =
+      HM::Parser.definitions({{source}})
+
+    fail "Could not parse {{source.id}}" unless definitions
+
+    environment =
+      HM::Environment.new(definitions)
+
+    fail "Environment not sound!" unless environment.sound?
+
+    enumerator =
+      HM::BranchEnumerator.new(environment)
+
+    branches =
+      enumerator
+        .possibilities(definitions.last)
+        .flat_map { |branch| HM::PatternGenerator.generate(branch) }
+
+    patterns =
+      HM::Parser.patterns({{patterns}})
+
+    fail "Cannot parse patterns!" unless patterns
+
+    type =
+      HM::Parser.type({{type}})
+
+    fail "Cannot parse type!" unless type
+
+    matcher =
+      HM::PatternMatcher.new(environment)
+
+    result =
+      matcher.match_patterns(patterns, type)
+
+    fail "Could not match patterns" unless result
+
+    result[:not_covered].map(&.format).should be_empty
+    result[:not_matched].map(&.format).should be_empty
   end
 end
 
@@ -224,8 +290,40 @@ describe HM do
     TYPE
   )
 
-  it "pattern matching" do
-    source = <<-TYPE
+  # expect_patterns([
+  #   "User(name: Just(String), active: Bool, age: Number)",
+  #   "User(name: Nothing, active: Bool, age: Number)",
+  # ], <<-TYPE
+  #   type String
+  #   type Number
+  #   type Bool
+
+  #   type Maybe(a) {
+  #     Just(a)
+  #     Nothing
+  #   }
+
+  #   type User {
+  #     name : Maybe(String),
+  #     active : Bool,
+  #     age : Number
+  #   }
+  #   TYPE
+  # )
+
+  expect_matches(
+    (<<-TYPE
+    E(X, O)
+    E(X, P)
+    E(Y, O)
+    E(Y, P)
+    F(X)
+    F(Y)
+    G
+    TYPE
+
+      ), "D(C,E)",
+    <<-TYPE2
     type A
     type B
 
@@ -244,42 +342,18 @@ describe HM do
       F(a)
       G
     }
+    TYPE2
+  )
+
+  expect_matches(
+    (<<-TYPE
+    [{a, b}, ...rest]
+    [{a, _}]
+    []
     TYPE
 
-    definitions =
-      HM::Parser.parse_definitions(source)
-
-    fail "Could not parse #{source}" unless definitions
-
-    environment =
-      HM::Environment.new(definitions)
-
-    fail "Environment not sound!" unless environment.sound?
-
-    type =
-      HM::Parser.parse("D(C,E)").not_nil!
-
-    enumerator =
-      HM::BranchEnumerator.new(environment)
-
-    branches =
-      enumerator
-        .possibilities(type)
-
-    branches.map { |branch| HM::Formatter.format(branch) }
-      .should eq([
-        "E(X, O)",
-        "E(X, P)",
-        "E(Y, O)",
-        "E(Y, P)",
-        "F(X)",
-        "F(Y)",
-        "G",
-      ])
-  end
-
-  it "pattern matching" do
-    source = <<-TYPE
+      ), "Array(Tuple(String, String))",
+    <<-TYPE
     type String
     type Array(a)
     type Maybe(a) {
@@ -287,44 +361,5 @@ describe HM do
       Nothing
     }
     TYPE
-
-    definitions =
-      HM::Parser.parse_definitions(source)
-
-    fail "Could not parse #{source}" unless definitions
-
-    environment =
-      HM::Environment.new(definitions)
-
-    fail "Environment not sound!" unless environment.sound?
-
-    type =
-      HM::Parser.parse("Array(Tuple(String, String))").not_nil!
-
-    matcher =
-      HM::PatternMatcher.new(environment)
-
-    result =
-      matcher.match_patterns([
-        HM::Patterns::Array.new([
-          HM::Patterns::Spread.new("rest"),
-          HM::Patterns::Tuple.new([
-            HM::Patterns::Variable.new("String"),
-            HM::Patterns::Variable.new("a"),
-          ] of HM::Pattern),
-        ] of HM::Pattern),
-        HM::Patterns::Array.new([
-          HM::Patterns::Tuple.new([
-            HM::Patterns::Variable.new("a"),
-            HM::Patterns::Variable.new("String"),
-          ] of HM::Pattern),
-        ] of HM::Pattern),
-        HM::Patterns::Array.new([] of HM::Pattern),
-      ] of HM::Pattern, type)
-
-    fail "Type not sound!" unless result
-
-    result[:not_covered].should be_empty
-    result[:not_matched].should be_empty
-  end
+  )
 end
