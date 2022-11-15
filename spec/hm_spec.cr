@@ -290,26 +290,26 @@ describe HM do
     TYPE
   )
 
-  # expect_patterns([
-  #   "User(name: Just(String), active: Bool, age: Number)",
-  #   "User(name: Nothing, active: Bool, age: Number)",
-  # ], <<-TYPE
-  #   type String
-  #   type Number
-  #   type Bool
+  expect_patterns([
+    "User(name: Just(String), active: Bool, age: Number)",
+    "User(name: Nothing, active: Bool, age: Number)",
+  ], <<-TYPE
+    type String
+    type Number
+    type Bool
 
-  #   type Maybe(a) {
-  #     Just(a)
-  #     Nothing
-  #   }
+    type Maybe(a) {
+      Just(a)
+      Nothing
+    }
 
-  #   type User {
-  #     name : Maybe(String),
-  #     active : Bool,
-  #     age : Number
-  #   }
-  #   TYPE
-  # )
+    type User {
+      name : Maybe(String),
+      active : Bool,
+      age : Number
+    }
+    TYPE
+  )
 
   expect_matches(
     (<<-TYPE

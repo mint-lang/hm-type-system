@@ -38,19 +38,16 @@ module HM
               compose(type.fields.map { |field| generate(field.item) })
 
             composed.map_with_index do |fields|
-              items =
-                if type.record?
-                  fields.map_with_index do |field, index|
-                    name =
-                      type.fields[index].name.not_nil!
-
+              mapped =
+                fields.map_with_index do |field, index|
+                  if name = type.fields[index].name
                     Patterns::Field.new(name, field)
+                  else
+                    field
                   end
-                else
-                  fields
                 end
 
-              Patterns::Type.new(type.name, fields).as(Pattern)
+              Patterns::Type.new(type.name, mapped).as(Pattern)
             end
           end
         end
