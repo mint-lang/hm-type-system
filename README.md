@@ -12,7 +12,7 @@ This repository contains:
 * [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
 * [x] [Pattern generator for types](../src/pattern_generator.cr)
 * [x] [Pattern matching of types and patterns](../src/pattern_matcher.cr)
-* [x] [JavaScript for types and pattern matching)(../src/javascript/index.js)
+* [x] [JavaScript for types and pattern matching](../src/javascript/index.js)
 * [ ] [Web based playground](..src/playground.cr)
 
 ## Installation
