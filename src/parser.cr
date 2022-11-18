@@ -219,8 +219,10 @@ module HM
 
     # Parses a list of things which are surrounded by start char and end char.
     def list(start_char : Char, end_char : Char, separator : Char, &block : -> T?) : Array(T) | Nil forall T
-      surrounded(start_char, end_char) do
-        list(separator: separator, terminator: end_char) { yield }
+      start do
+        surrounded(start_char, end_char) do
+          list(separator: separator, terminator: end_char) { yield }
+        end
       end
     end
 
@@ -245,6 +247,7 @@ module HM
           list(start_char: '(', end_char: ')', separator: ',') { variable }
 
         whitespace
+
         fields =
           surrounded(start_char: '{', end_char: '}') do
             variants =
@@ -286,11 +289,11 @@ module HM
     # Parses a pattern.
     def pattern
       wildcard_pattern ||
-        variable_pattern ||
         spread_pattern ||
         array_pattern ||
         tuple_pattern ||
         field_pattern ||
+        variable_pattern ||
         type_pattern
     end
 
@@ -403,29 +406,31 @@ module HM
     end
 
     def identifier : String?
-      name = gather do
-        return unless char.ascii_uppercase?
-        ascii_letters_or_numbers
-      end
-
-      return unless name
-
       start do
-        if char == '.'
-          other = start do
-            step
-            next_part = identifier
-            next unless next_part
-            next_part
-          end
-
-          next unless other
-
-          name += ".#{other}"
+        name = gather do
+          return unless char.ascii_uppercase?
+          ascii_letters_or_numbers
         end
-      end
 
-      name
+        next unless name
+
+        start do
+          if char == '.'
+            other = start do
+              step
+              next_part = identifier
+              next unless next_part
+              next_part
+            end
+
+            next unless other
+
+            name += ".#{other}"
+          end
+        end
+
+        name
+      end
     end
   end
 end

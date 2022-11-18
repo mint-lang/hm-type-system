@@ -1,21 +1,19 @@
 # hm-type-system
 
-This repository contains a modified version of the Hindley-Milner type system which is used by the Mint programming language and can also be used by itself in an other programming language or in other use cases.
+This repository contains a modified version of the Hindley-Milner type system which is used by the Mint programming language and can also be used by itself, in an other programming languages or in other use cases.
 
 Most implementations of a Hindley-Milner type system is done in a functional programming language (Haskell mainly) and can be hard to understand. This implementation focuses on being readable, easily understandable and documented (in this readme and with comments) in an object oriented language.
 
 This repository contains:
 
-* [ ] [Formal grammar (PEG.js) for types, definitions and patterns](grammar/gammar.pegjs)
 * [x] [Parser for the types, definitions, patterns](../src/parser.cr)
 * [x] [Data structures for the types](../src/types.cr)
 * [x] [Type unification algorithm](../src/unifier.cr)
 * [x] [Branch enumeration algorithm](../src/branch_enumerator.cr)
 * [x] [Pattern generator for types](../src/pattern_generator.cr)
 * [x] [Pattern matching of types and patterns](../src/pattern_matcher.cr)
+* [x] [JavaScript for types and pattern matching)(../src/javascript/index.js)
 * [ ] [Web based playground](..src/playground.cr)
-* [ ] JavaScript values for specific types
-* [ ] JavaScript pattern matching function
 
 ## Installation
 
@@ -128,6 +126,41 @@ To unify two types you can just do this:
 HM::Unifier.unify(type1, type2)
 ```
 
+### Pattern Matching
+
+The library contains function to do pattern matching: defining a pattern which can match a type. This is required to do exhaustive `case` statements.
+
+There are three entities that help with this:
+
+- `HM::BranchEnumerator` - generates all possible variations of a type
+- `HM::PatternGenerator` - expands and generates patterns that match the a type
+- `HM::PatternMatcher` - matches a pattern to a type
+
+Matching patterns against a type:
+
+```
+pattern =
+  HM::Parser.pattern("Test(a, b, c)").not_nil!
+
+type =
+  HM::Type.type("Test(String, Number, Boolean)").not_nil!
+
+definition =
+  HM::Type.definition("type Test(a, b, c)").not_nil!
+
+environment =
+  HM::Environment.new([definition])
+
+matcher = HM::PatternMatcher.new(environment)
+matcher.match_patterns([pattern], type)
+
+# {
+#   matched:     [generated_pattern],
+#   covered:     [pattern],
+#   not_covered: [],
+#   not_matched: [],
+# }
+```
 ## Development
 
 For developing all you need is Crystal and there is only one dependency [kemal](https://github.com/kemalcr/kemal) which is for the playground itself.
