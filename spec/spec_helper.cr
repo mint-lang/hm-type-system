@@ -1,2 +1,2 @@
 require "spec"
-require "../src/hm"
+require "../src/hm_type_system"

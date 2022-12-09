@@ -1,4 +1,4 @@
-require "./hm"
+require "./hm_type_system"
 require "kemal"
 
 get "/" do
@@ -15,10 +15,10 @@ get "/unifier" do |env|
     else
       begin
         parsed1 =
-          HM::Parser.parse(type1)
+          HM::Parser.type(type1)
 
         parsed2 =
-          HM::Parser.parse(type2)
+          HM::Parser.type(type2)
 
         if parsed1
           if parsed2
@@ -51,10 +51,10 @@ get "/branch-enumerator" do |env|
       ""
     else
       definitions =
-        HM::Parser.parse_definitions(types)
+        HM::Parser.definitions(types)
 
       parsed =
-        HM::Parser.parse(type)
+        HM::Parser.type(type)
 
       if definitions
         if parsed
@@ -64,7 +64,7 @@ get "/branch-enumerator" do |env|
           if environment.sound?
             if environment.sound?(parsed)
               HM::BranchEnumerator
-                .new(environment.definitions)
+                .new(environment)
                 .possibilities(parsed)
                 .map { |branch| HM::Formatter.format(branch) }
                 .join("\n")
