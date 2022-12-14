@@ -6,9 +6,25 @@ module HM
 
   # Represents a type variable which is a hole in a type.
   class Variable
+    EMPTY_FIELDS = [] of Field
+
     getter name : String
 
     def initialize(@name)
+    end
+
+    # This is so we don't have to check between a type and a type variable,
+    # like this:
+    #
+    #   case type
+    #   in Type
+    #     type.fields.first.item
+    #   in Variable
+    #     nil
+    #   end
+    #
+    def fields
+      EMPTY_FIELDS
     end
 
     # This method is needed so we can call empty? on Checkable objects.
