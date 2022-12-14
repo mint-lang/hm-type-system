@@ -43,7 +43,7 @@ module HM
       @fields = fields.map { |item| Field.new(nil, item) }
     end
 
-    def initialize(@name, @fields)
+    def initialize(@name, @fields = [] of Field)
     end
 
     # A type is a record if it only have named fields, in which case
