@@ -76,20 +76,21 @@ module HM
         if name_same && a.fields.size == b.fields.size
           failed =
             a.fields.zip(b.fields).any? do |item1, item2|
-              item1.name != item2.name || begin
-                # We create a submapping because the sub unification can fail
-                # and if it doese it would taint the original mapping.
-                sub_mapping =
-                  {} of Variable => Checkable
+              # Return if both have names and they are different.
+              next if item1.name && item2.name && item1.name != item2.name
 
-                sub_unification =
-                  unify(item1.item, item2.item, sub_mapping)
+              # We create a submapping because the sub unification can fail
+              # and if it doese it would taint the original mapping.
+              sub_mapping =
+                {} of Variable => Checkable
 
-                next true if sub_unification.nil?
+              sub_unification =
+                unify(item1.item, item2.item, sub_mapping)
 
-                mapping.merge!(sub_mapping)
-                false
-              end
+              next true if sub_unification.nil?
+
+              mapping.merge!(sub_mapping)
+              false
             end
 
           a unless failed
