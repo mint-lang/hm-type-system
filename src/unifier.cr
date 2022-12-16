@@ -77,7 +77,7 @@ module HM
           failed =
             a.fields.zip(b.fields).any? do |item1, item2|
               # Return if both have names and they are different.
-              next if item1.name && item2.name && item1.name != item2.name
+              next true if item1.name && item2.name && item1.name != item2.name
 
               # We create a submapping because the sub unification can fail
               # and if it doese it would taint the original mapping.
