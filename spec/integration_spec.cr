@@ -145,8 +145,10 @@ describe HM do
   expect_not_unify("Array(String)", "Bool")
   expect_not_unify("String", "Number")
 
+  expect_unify("Function(a: String, b: String, String)", "Function(String, b: String, String)", "Function(a: String, b: String, String)")
   expect_unify("Array(Result(String, String), a)", "Array(x, x)", "Array(Result(String, String), Result(String, String))")
   expect_unify("Function(a: String, String)", "Function(String, String)", "Function(a: String, String)")
+
   expect_unify("Array(Result(String, String), a)", "Array(x, y)", "Array(Result(String, String), a)")
   expect_unify("Function(a, a, a)", "Function(a, a, String)", "Function(String, String, String)")
   expect_unify("Function(a, a, String)", "Function(a, a, a)", "Function(String, String, String)")

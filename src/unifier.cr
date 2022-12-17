@@ -114,7 +114,7 @@ module HM
     # Variables are not normalized because they are basically just pointers.
     #
     # We sort the fields because when unification happens as they need to be in a
-    # definite order.
+    # definite order, but only if all fields have a name.
     def normalize(type : Checkable, mapping = {} of String => Variable)
       case type
       in Variable
@@ -132,18 +132,20 @@ module HM
               end
 
             Field.new(field.name, normalized)
-          end.sort do |item1, item2|
-            case {key1 = item1.name, key2 = item2.name}
-            when {String, String}
-              key1 <=> key2
-            when {Nil, String}
-              1
-            when {String, Nil}
-              -1
-            when {Nil, Nil}
-              0
-            end
           end
+
+        fields.sort! do |item1, item2|
+          case {key1 = item1.name, key2 = item2.name}
+          when {String, String}
+            key1 <=> key2
+          when {Nil, String}
+            1
+          when {String, Nil}
+            -1
+          when {Nil, Nil}
+            0
+          end
+        end if fields.all?(&.name)
 
         Type.new(type.name, fields)
       end
