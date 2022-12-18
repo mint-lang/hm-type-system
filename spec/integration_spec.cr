@@ -294,8 +294,30 @@ describe HM do
   )
 
   expect_patterns([
+    "String",
+    "_",
+  ], <<-TYPE
+    type String
+    TYPE
+  )
+
+  expect_patterns([
     "User(name: Just(String), active: Bool, age: Number)",
+    "User(name: Just(String), active: Bool, age: _)",
+    "User(name: Just(String), active: _, age: Number)",
+    "User(name: Just(String), active: _, age: _)",
+    "User(name: Just(_), active: Bool, age: Number)",
+    "User(name: Just(_), active: Bool, age: _)",
+    "User(name: Just(_), active: _, age: Number)",
+    "User(name: Just(_), active: _, age: _)",
     "User(name: Nothing, active: Bool, age: Number)",
+    "User(name: Nothing, active: Bool, age: _)",
+    "User(name: Nothing, active: _, age: Number)",
+    "User(name: Nothing, active: _, age: _)",
+    "User(name: _, active: Bool, age: Number)",
+    "User(name: _, active: Bool, age: _)",
+    "User(name: _, active: _, age: Number)",
+    "User(name: _, active: _, age: _)",
   ], <<-TYPE
     type String
     type Number
@@ -323,6 +345,21 @@ describe HM do
     F(X)
     F(Y)
     G
+    E(X, _)
+    E(_, O)
+    E(_, _)
+    E(X, _)
+    E(_, P)
+    E(_, _)
+    E(Y, _)
+    E(_, O)
+    E(_, _)
+    E(Y, _)
+    E(_, P)
+    E(_, _)
+    F(_)
+    F(_)
+    _
     TYPE
 
       ), "D(C,E)",

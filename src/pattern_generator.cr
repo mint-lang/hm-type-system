@@ -32,7 +32,10 @@ module HM
             .map { |items| Patterns::Tuple.new(items).as(Pattern) }
         else
           if type.empty?
-            [Patterns::Type.new(type.name, [] of Pattern)] of Pattern
+            [
+              Patterns::Type.new(type.name, [] of Pattern),
+              Patterns::Wildcard.new,
+            ] of Pattern
           else
             composed =
               compose(type.fields.map { |field| generate(field.item) })
