@@ -347,17 +347,12 @@ describe HM do
     G
     E(X, _)
     E(_, O)
-    E(_, _)
     E(X, _)
     E(_, P)
-    E(_, _)
     E(Y, _)
     E(_, O)
-    E(_, _)
     E(Y, _)
     E(_, P)
-    E(_, _)
-    F(_)
     F(_)
     _
     TYPE

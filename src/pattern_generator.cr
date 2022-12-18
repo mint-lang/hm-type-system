@@ -52,7 +52,7 @@ module HM
 
               Patterns::Type.new(type.name, mapped).as(Pattern)
             end
-          end
+          end.uniq(&.format)
         end
       end
     end
