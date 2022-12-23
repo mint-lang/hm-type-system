@@ -5,8 +5,10 @@ macro expect_not_unify(a, b)
     type1 = HM::Parser.type({{a}}) || HM::Parser.variable({{a}})
     type2 = HM::Parser.type({{b}}) || HM::Parser.variable({{b}})
 
+    environment = HM::Environment.new([] of HM::Definition)
+
     if type1 && type2
-      result = HM::Unifier.unify(type1, type2)
+      result = environment.unify(type1, type2)
 
       if result
         fail "Expected \"{{a.id}}\" and \"{{b.id}}\" not to be unifiable but they are."
@@ -22,8 +24,10 @@ macro expect_unify(a, b, expected)
     type1 = HM::Parser.type({{a}}) || HM::Parser.variable({{a}})
     type2 = HM::Parser.type({{b}}) || HM::Parser.variable({{b}})
 
+    environment = HM::Environment.new([] of HM::Definition)
+
     if type1 && type2
-      result = HM::Unifier.unify(type1, type2)
+      result = environment.unify(type1, type2)
 
       unless result
         fail "Expected \"{{a.id}}\" and \"{{b.id}}\" to be unifiable but they are not."

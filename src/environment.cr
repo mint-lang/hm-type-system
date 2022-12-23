@@ -10,6 +10,40 @@ module HM
       @stack = Stack(Definition).new
     end
 
+    # Delegated to HM::Unifier.matches? but with resolved types.
+    def matches?(a : Checkable, b : Checkable) : Bool
+      HM::Unifier.matches?(resolve(a), resolve(b))
+    end
+
+    # Delegated to HM::Unifier.matches? but with resolved types.
+    def matches?(a : Checkable, b : Array(Checkable)) : Bool
+      HM::Unifier.matches?(resolve(a), b.map { |item| resolve(item) })
+    end
+
+    # Delegated to HM::Unifier.unify but with resolved types.
+    def unify(a : Checkable, b : Checkable) : Checkable | Nil
+      HM::Unifier.unify(resolve(a), resolve(b))
+    end
+
+    # Resolves a type by trying to match it to definitions (recursively).
+    def resolve(type : Type) : Checkable
+      definitions.find(&.name.==(type.name)).try do |definition|
+        type = definition.type
+      end
+
+      fields =
+        type.fields.map do |field|
+          Field.new(field.name, resolve(field.item))
+        end
+
+      Type.new(type.name, fields)
+    end
+
+    # Variables are resolve as themselves.
+    def resolve(variable : Variable) : Checkable
+      variable
+    end
+
     # Checks if the evironment is sound (or complete):
     # - can't be multiple types with the same name
     # - can't be any undefined or unsound types
