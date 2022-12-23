@@ -50,7 +50,7 @@ module HM
     # we can assume any other type with only the same named fields
     # are the same.
     def record?
-      fields.any? && fields.none?(&.name.nil?)
+      fields.size > 0 && fields.none?(&.name.nil?)
     end
 
     # A type is considered empty if it has no fields.
@@ -66,6 +66,11 @@ module HM
     getter name : String
 
     def initialize(@name, @parameters, @fields)
+    end
+
+    # A definition is a record if it has fields instead of variants.
+    def record?
+      fields.size > 0 && fields.is_a?(Array(Field))
     end
 
     # Returns the type representation of the definition.

@@ -25,18 +25,149 @@ module HM
       HM::Unifier.unify(resolve(a), resolve(b))
     end
 
-    # Resolves a type by trying to match it to definitions (recursively).
-    def resolve(type : Type) : Checkable
-      definitions.find(&.name.==(type.name)).try do |definition|
-        type = definition.type
-      end
-
-      fields =
-        type.fields.map do |field|
-          Field.new(field.name, resolve(field.item))
+    # Resolves a type definition that matches the given fields.
+    def resolve(fields : Array(Field)) : Definition?
+      definitions.find do |item|
+        case items = item.fields
+        when Array(Field)
+          if fields.size == items.size
+            fields.all? do |key, type|
+              next false unless field = items.find(&.name.==(key))
+              matches?(field.item, type)
+            end
+          end
         end
+      end
+    end
 
-      Type.new(type.name, fields)
+    # Resolves a type by trying to match it to definitions (recursively).
+    #
+    # In the case of record types, we need to expand the type definition into a
+    # record type so the original type definition is basically a shorthand:
+    #
+    #   type Record(a, b) {
+    #     value: b,
+    #     key: a
+    #   }
+    #
+    #   Record(String, String) => Record(key: String, value: String)
+    #
+    # In the case of a variant, we substitute the parameters of the type
+    # definition:
+    #
+    #   type Result(error, value) {
+    #     Error(error)
+    #     Ok(value)
+    #   }
+    #
+    #   Error(String) => Result(String, a)
+    #   Ok(String) => Result(a, String)
+    #
+    def resolve(type : Type) : Checkable
+      # Try to find the definition.
+      definition =
+        definitions.find(&.name.==(type.name))
+
+      # Try to find the variant (there can be many).
+      variant =
+        definitions.compact_map do |definition|
+          case items = definition.fields
+          when Array(Variant)
+            if item = items.find(&.name.==(type.name))
+              {definition, item}
+            end
+          end
+        end unless definition
+
+      # If we found a definition and it's a record and the type is not a record
+      # and they have parameter size matches the fields size.
+      if definition &&
+         definition.record? &&
+         !type.record? &&
+         definition.parameters.size == type.fields.size
+        # Build up a mapping of parameters and it's types:
+        #
+        #   type Record(a, b) {
+        #     value: b,
+        #     key: a
+        #   }
+        #
+        #   Record(String, String) => { a => String, b => String }
+        #
+        mapping =
+          definition
+            .parameters
+            .zip(type.fields)
+            .each_with_object({} of String => Checkable) do |(parameter, field), memo|
+              memo[parameter.name] = resolve(field.item)
+            end
+
+        # Substitute the parameters in definitions fields with the actual
+        # values if there is none then resolve the field.
+        fields =
+          case items = definition.fields
+          when Array(Field)
+            items.map_with_index do |field|
+              resolved =
+                mapping[field.item.name]? || resolve(field.item)
+
+              Field.new(field.name, resolved)
+            end
+          end || [] of Field
+
+        Type.new(definition.name, fields)
+      elsif variant # If we found variant(s)
+        variant.compact_map do |(definition, item)|
+          # Resolve the variant type.
+          variant_type =
+            Type.new(item.name, item.items.map { |field| Field.new(field.name, resolve(field.item)) })
+
+          # Unify the type and the variant type.
+          if resolved = HM::Unifier.unify(type, variant_type)
+            # Build up a mapping of parameters and it's types:
+            #
+            #   type Result(error, value) {
+            #     Error(error)
+            #     Ok(value)
+            #   }
+            #
+            #   Ok(String) => { value => String }
+            #
+            mapping =
+              item
+                .items
+                .zip(resolved.fields)
+                .each_with_object({} of String => Checkable) do |(parameter, field), memo|
+                  case parameter
+                  when Field
+                    case parameter.item
+                    when Variable
+                      memo[parameter.item.name] = resolve(field.item)
+                    end
+                  when Variable
+                    memo[parameter.name] = resolve(field.item)
+                  end
+                end
+
+            # Substitute the parameters in definitions parameters with the
+            # actual types.
+            fields =
+              definition.parameters.map do |parameter|
+                mapping[parameter.name]? || parameter
+              end
+
+            Type.new(definition.name, fields)
+          end
+        end.first?
+      end || begin
+        # Alternatively we can just resolve, the type recursively.
+        fields =
+          type.fields.map_with_index do |field|
+            Field.new(field.name, resolve(field.item))
+          end
+
+        Type.new(type.name, fields)
+      end
     end
 
     # Variables are resolve as themselves.

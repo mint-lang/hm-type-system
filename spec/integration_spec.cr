@@ -99,6 +99,30 @@ macro expect_patterns(expected, source)
   end
 end
 
+macro expect_resolves(type, expected, source)
+  it "{{type.id}} vs {{expected.id}}" do
+    definitions =
+      HM::Parser.definitions({{source}})
+
+    fail "Could not parse {{source.id}}" unless definitions
+
+    environment =
+      HM::Environment.new(definitions)
+
+    fail "Environment not sound!" unless environment.sound?
+
+    type = HM::Parser.type({{type}})
+
+    if type
+      result = environment.resolve(type)
+
+      HM::Formatter.format(result).should eq({{expected}})
+    else
+      fail "Could not parse {{type.id}}."
+    end
+  end
+end
+
 macro expect_matches(patterns, type, source)
   it "Expands type: {{source.id}}" do
     definitions =
@@ -398,6 +422,48 @@ describe HM do
     type Maybe(a) {
       Just(a)
       Nothing
+    }
+    TYPE
+  )
+
+  expect_resolves(
+    "Error(String)",
+    "Result(String, a)",
+    <<-TYPE
+    type String
+    type Bool
+
+    type Result(error, value) {
+      Error(error)
+      Ok(value)
+    }
+    TYPE
+  )
+
+  expect_resolves(
+    "Ok(String)",
+    "Result(a, String)",
+    <<-TYPE
+    type String
+    type Bool
+
+    type Result(error, value) {
+      Error(error)
+      Ok(value)
+    }
+    TYPE
+  )
+
+  expect_resolves(
+    "Record(String, Bool)",
+    "Record(value: Bool, key: String)",
+    <<-TYPE
+    type String
+    type Bool
+
+    type Record(a, b) {
+      value: b,
+      key: a
     }
     TYPE
   )
