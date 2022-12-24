@@ -26,8 +26,8 @@ module HM
     end
 
     # Resolves a type definition that matches the given fields.
-    def resolve(fields : Array(Field)) : Definition?
-      definitions.find do |item|
+    def resolve(fields : Array(Field)) : {Checkable, Definition}?
+      definitions.compact_map do |item|
         definition_fields =
           case items = item.fields
           when Array(Field)
@@ -42,8 +42,11 @@ module HM
         record_type =
           resolve(Type.new("", fields))
 
-        HM::Unifier.unify(definition_type, record_type)
-      end
+        unified =
+          HM::Unifier.unify(definition_type, record_type)
+
+        {unified, item} if unified
+      end.first?
     end
 
     # Resolves a type by trying to match it to definitions (recursively).
