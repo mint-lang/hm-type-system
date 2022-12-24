@@ -467,4 +467,19 @@ describe HM do
     }
     TYPE
   )
+
+  expect_resolves(
+    "Record(String, Bool)",
+    "Record(value: Bool, key: String, field: String)",
+    <<-TYPE
+    type String
+    type Bool
+
+    type Record(a, b) {
+      value: b,
+      key: a,
+      field : String
+    }
+    TYPE
+  )
 end
