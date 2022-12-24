@@ -28,15 +28,21 @@ module HM
     # Resolves a type definition that matches the given fields.
     def resolve(fields : Array(Field)) : Definition?
       definitions.find do |item|
-        case items = item.fields
-        when Array(Field)
-          if fields.size == items.size
-            fields.all? do |key, type|
-              next false unless field = items.find(&.name.==(key))
-              matches?(field.item, type)
-            end
+        definition_fields =
+          case items = item.fields
+          when Array(Field)
+            items
+          else
+            [] of Field
           end
-        end
+
+        definition_type =
+          resolve(Type.new(item.name, definition_fields))
+
+        record_type =
+          resolve(Type.new("", fields))
+
+        HM::Unifier.unify(definition_type, record_type)
       end
     end
 

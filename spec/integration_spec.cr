@@ -167,6 +167,27 @@ macro expect_matches(patterns, type, source)
 end
 
 describe HM do
+  it "resolves a record from fields" do
+    definitions = HM::Parser.definitions(<<-TYPE
+      type String
+      type Bool
+
+      type Record(a, b) {
+        field: String,
+        value: b,
+        key: a
+      }
+    TYPE
+    )
+
+    environment = HM::Environment.new(definitions.not_nil!)
+    environment.resolve([
+      HM::Field.new(name: "field", item: HM::Type.new("String")),
+      HM::Field.new(name: "value", item: HM::Type.new("String")),
+      HM::Field.new(name: "key", item: HM::Type.new("Bool")),
+    ]).should_not be_nil
+  end
+
   expect_not_unify("Function(String,Number)", "Function(Number,Number)")
   expect_not_unify("Array(x)", "Array(x,y)")
   expect_not_unify("Array(x,y)", "Array(x)")
