@@ -39,6 +39,10 @@ module HM
     getter fields : Array(Field) = [] of Field
     getter name : String
 
+    def self.parse!(source : String) : Type
+      Parser.type.not_nil!
+    end
+
     def initialize(@name, fields : Array(Checkable))
       @fields = fields.map { |item| Field.new(nil, item) }
     end
