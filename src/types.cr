@@ -40,7 +40,7 @@ module HM
     getter name : String
 
     def self.parse!(source : String) : Type
-      Parser.type(source).not_nil!
+      Parser.type(source).not_nil!.as(Type)
     end
 
     def initialize(@name, fields : Array(Checkable))
