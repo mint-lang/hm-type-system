@@ -188,6 +188,17 @@ describe HM do
     ]).should_not be_nil
   end
 
+  it "creates a type from a number of different fields" do
+    type = HM::Type.new("Test", [
+      "String",
+      "a",
+      HM::Field.new(name: "field", item: HM::Type.new("String")),
+      HM::Type.new("X"),
+    ])
+
+    HM::Formatter.format(type).should eq("Test(String, a, field: String, X)")
+  end
+
   expect_not_unify("Function(String,Number)", "Function(Number,Number)")
   expect_not_unify("Array(x)", "Array(x,y)")
   expect_not_unify("Array(x,y)", "Array(x)")

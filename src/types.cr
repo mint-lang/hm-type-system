@@ -46,6 +46,25 @@ module HM
     def initialize(@name, @fields = [] of Field)
     end
 
+    def initialize(@name, fields = [] of Field | Checkable | String)
+      @fields =
+        fields.map do |item|
+          case item
+          in Field
+            item
+          in Checkable
+            Field.new(nil, item)
+          in String
+            Field.new(nil,
+              if item.starts_with?(/[A-Z]/)
+                Type.new(item)
+              else
+                Variable.new(item)
+              end)
+          end
+        end
+    end
+
     # A type is a record if it only have named fields, in which case
     # we can assume any other type with only the same named fields
     # are the same.
