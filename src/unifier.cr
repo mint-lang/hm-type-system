@@ -43,7 +43,7 @@ module HM
         instanceB = mapping[b]?
 
         if instanceA && instanceB
-          nil unless instanceA == instanceB
+          unify(instanceA, instanceB)
         elsif instanceA
           mapping[b] = a
         else
@@ -57,7 +57,7 @@ module HM
 
         # This check is important since the variables can point to each other.
         if instance && instance.is_a?(Type)
-          nil unless instance == b
+          unify(instance, b)
         else
           mapping[a] = b
         end

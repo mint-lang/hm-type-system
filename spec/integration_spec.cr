@@ -229,6 +229,9 @@ describe HM do
   expect_unify("a", "String", "String")
   expect_unify("String", "a", "String")
 
+  expect_unify("Function(a, a, Bool)", "Function(a: Record, b: Record, Bool)", "Function(Record, Record, Bool)")
+  expect_unify("Function(a: Record, b: Record, Bool)", "Function(a, b, Bool)", "Function(a: Record, b: Record, Bool)")
+
   expect_define_type "type Test"
   expect_define_type "type Test(a, b)"
   expect_define_type "type Test(a, b) {}"
