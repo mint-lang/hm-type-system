@@ -70,19 +70,23 @@ module HM
         #
         # If they are both records (only have named fields) we can assume that
         # they represent the same data.
-        name_same =
-          (a.record? && b.record?) || a.name == b.name
+        both_records =
+          a.record? && b.record?
 
-        if name_same && a.fields.size == b.fields.size
+        same_type =
+          both_records || a.name == b.name
+
+        if same_type && a.fields.size == b.fields.size
           failed =
             a.fields.zip(b.fields).any? do |item1, item2|
               # Return if both have names and they are different.
               next true if item1.name && item2.name && item1.name != item2.name
 
-              # We create a submapping because the sub unification can fail
-              # and if it doese it would taint the original mapping.
+              # We duplicate the mapping as a submapping because the sub
+              # unification can fail and if it doese it would taint the
+              # original mapping.
               sub_mapping =
-                {} of Variable => Checkable
+                mapping.dup
 
               sub_unification =
                 unify(item1.item, item2.item, sub_mapping)
@@ -120,34 +124,39 @@ module HM
       in Variable
         type
       in Type
-        fields =
-          type.fields.map do |field|
-            normalized =
-              case value = field.item
-              in Variable
-                mapping[value.name]? ||
-                  (mapping[value.name] = Variable.new(value.name))
-              in Type
-                normalize(value, mapping)
-              end
+        # Optimization so we don't create so many types.
+        if type.fields.size == 0
+          type
+        else
+          fields =
+            type.fields.map do |field|
+              normalized =
+                case value = field.item
+                in Variable
+                  mapping[value.name]? ||
+                    (mapping[value.name] = Variable.new(value.name))
+                in Type
+                  normalize(value, mapping)
+                end
 
-            Field.new(field.name, normalized)
-          end
+              Field.new(field.name, normalized)
+            end
 
-        fields.sort! do |item1, item2|
-          case {key1 = item1.name, key2 = item2.name}
-          when {String, String}
-            key1 <=> key2
-          when {Nil, String}
-            1
-          when {String, Nil}
-            -1
-          when {Nil, Nil}
-            0
-          end
-        end if fields.all?(&.name)
+          fields.sort! do |item1, item2|
+            case {key1 = item1.name, key2 = item2.name}
+            when {String, String}
+              key1 <=> key2
+            when {Nil, String}
+              1
+            when {String, Nil}
+              -1
+            when {Nil, Nil}
+              0
+            end
+          end if fields.all?(&.name)
 
-        Type.new(type.name, fields)
+          Type.new(type.name, fields)
+        end
       end
     end
 

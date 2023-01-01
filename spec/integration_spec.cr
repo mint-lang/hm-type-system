@@ -1,5 +1,17 @@
 require "./spec_helper"
 
+macro expect_normalized(type, expected)
+  it "{{type.id}} vs {{expected.id}}" do
+    type = HM::Parser.type({{type}}) || HM::Parser.variable({{type}})
+
+    if type
+      HM::Formatter.format(HM::Unifier.normalize(type)).should eq({{expected}})
+    else
+      fail "Could not parse {{type.id}}."
+    end
+  end
+end
+
 macro expect_not_unify(a, b)
   it "{{a.id}} vs {{b.id}}" do
     type1 = HM::Parser.type({{a}}) || HM::Parser.variable({{a}})
@@ -199,6 +211,8 @@ describe HM do
     HM::Formatter.format(type).should eq("Test(String, a, field: String, X)")
   end
 
+  expect_normalized("Function(value: a, context: Test.Context(b), Test.Context(c))", "Function(value: a, context: Test.Context(b), Test.Context(c))")
+
   expect_not_unify("Function(String,Number)", "Function(Number,Number)")
   expect_not_unify("Array(x)", "Array(x,y)")
   expect_not_unify("Array(x,y)", "Array(x)")
@@ -213,6 +227,7 @@ describe HM do
   expect_unify("Function(a, a, a)", "Function(a, a, String)", "Function(String, String, String)")
   expect_unify("Function(a, a, String)", "Function(a, a, a)", "Function(String, String, String)")
   expect_unify("Test(key: String, a)", "Test(key: a, a)", "Test(key: String, String)")
+  expect_unify("Test(key: a, a)", "Test(key: String, a)", "Test(key: String, String)")
   expect_unify("Test(key: String, a)", "Test(a, key: a)", "Test(key: String, String)")
   expect_unify("Test(key: String)", "User(key: String)", "Test(key: String)")
   expect_unify("Maybe(a)", "Maybe(Array(a))", "Maybe(Array(a))")

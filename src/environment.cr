@@ -2,12 +2,32 @@ module HM
   # This class is useful for checking a type environment for soundess
   # (all types are valid and complete and there are no missing types).
   class Environment
+    getter variants_map : Hash(String, Array(Tuple(Definition, Variant)))
+    getter definitions_map : Hash(String, Definition)
     getter definitions : Array(Definition)
     getter stack : Stack(Definition)
 
     def initialize(@definitions)
       # We have a stack to deal with recursion.
       @stack = Stack(Definition).new
+
+      @definitions_map =
+        definitions
+          .each_with_object({} of String => Definition) do |definition, memo|
+            memo[definition.name] = definition
+          end
+
+      @variants_map =
+        definitions
+          .each_with_object({} of String => Array(Tuple(Definition, Variant))) do |definition, memo|
+            case items = definition.fields
+            when Array(Variant)
+              items.each do |variant|
+                memo[variant.name] ||= [] of Tuple(Definition, Variant)
+                memo[variant.name] << {definition, variant}
+              end
+            end
+          end
     end
 
     # Delegated to HM::Unifier.matches? but with resolved types.
@@ -75,18 +95,11 @@ module HM
     def resolve(type : Type) : Checkable
       # Try to find the definition.
       definition =
-        definitions.find(&.name.==(type.name))
+        definitions_map[type.name]?
 
       # Try to find the variant (there can be many).
       variant =
-        definitions.compact_map do |definition|
-          case items = definition.fields
-          when Array(Variant)
-            if item = items.find(&.name.==(type.name))
-              {definition, item}
-            end
-          end
-        end unless definition
+        variants_map[type.name]?
 
       # If we found a definition and it's a record and the type is not a record
       # and they have parameter size matches the fields size.
@@ -125,7 +138,7 @@ module HM
           end || [] of Field
 
         Type.new(definition.name, fields)
-      elsif variant # If we found variant(s)
+      elsif variant && type.fields.size > 0 # If we found variant(s)
         variant.compact_map do |(definition, item)|
           # Resolve the variant type.
           variant_type =
@@ -169,13 +182,17 @@ module HM
           end
         end.first?
       end || begin
-        # Alternatively we can just resolve, the type recursively.
-        fields =
-          type.fields.map_with_index do |field|
-            Field.new(field.name, resolve(field.item))
-          end
+        if type.fields.size > 0
+          # Alternatively we can just resolve, the type recursively.
+          fields =
+            type.fields.map_with_index do |field|
+              Field.new(field.name, resolve(field.item))
+            end
 
-        Type.new(type.name, fields)
+          Type.new(type.name, fields)
+        else
+          type
+        end
       end
     end
 
