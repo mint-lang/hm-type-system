@@ -32,10 +32,12 @@ module HM
       matched = Set(Pattern).new
 
       branches.each do |branch|
-        next if covered.includes?(branch)
-
         patterns.each do |pattern|
-          if pattern.matches?(branch)
+          next if covered.includes?(branch) &&
+                  matched.includes?(pattern)
+
+          if pattern.matches?(branch) || branch.matches?(pattern)
+            pattern.copy_type_from(branch)
             covered.add(branch)
             matched.add(pattern)
           end

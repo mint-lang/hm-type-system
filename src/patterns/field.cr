@@ -11,8 +11,7 @@ module HM
       def matches?(pattern : Pattern) : Bool | Nil
         case pattern
         when Field
-          (pattern.name == name && self.pattern.matches?(pattern))
-            .tap { |matched| @type = pattern.type if matched }
+          pattern.name == name && self.pattern.matches?(pattern)
         end
       end
 
@@ -30,6 +29,14 @@ module HM
 
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         pattern.gather(mapping)
+      end
+
+      def copy_type_from(pattern : Pattern)
+        case pattern
+        when Field
+          @type = pattern.type
+          self.pattern.copy_type_from(pattern)
+        end
       end
 
       def format : String

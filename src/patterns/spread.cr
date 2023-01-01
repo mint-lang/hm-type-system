@@ -11,7 +11,7 @@ module HM
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
-        pattern.is_a?(Spread).tap { |matched| @type = pattern.type if matched }
+        pattern.is_a?(Spread)
       end
 
       def matches?(type : Checkable) : Bool | Nil
@@ -20,6 +20,12 @@ module HM
 
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         mapping.tap { |memo| type.try { |item| memo[name] = item } }
+      end
+
+      def copy_type_from(pattern : Pattern)
+        if pattern.is_a?(Spread)
+          @type = pattern.type
+        end
       end
 
       def format : String

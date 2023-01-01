@@ -8,7 +8,6 @@ module HM
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
-        @type = pattern.type
         true
       end
 
@@ -23,6 +22,10 @@ module HM
 
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         mapping.tap { |memo| type.try { |item| memo[name] = item } }
+      end
+
+      def copy_type_from(pattern : Pattern)
+        @type = pattern.type
       end
 
       def format : String

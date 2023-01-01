@@ -14,7 +14,7 @@ module HM
             patterns.zip(pattern.patterns).all? do |pattern1, pattern2|
               pattern1.matches?(pattern2)
             end
-        end.tap { |matched| @type = pattern.type if matched }
+        end
       end
 
       def matches?(type : Checkable) : Bool | Nil
@@ -32,6 +32,17 @@ module HM
 
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         mapping.tap { |memo| patterns.each(&.gather(memo)) }
+      end
+
+      def copy_type_from(pattern : Pattern)
+        case pattern
+        when Array
+          @type = pattern.type
+
+          patterns.zip(pattern.patterns).each do |pattern1, pattern2|
+            pattern1.copy_type_from(pattern2)
+          end
+        end
       end
 
       def format : String
