@@ -4,10 +4,11 @@ module HM
     class Variable < Pattern
       getter name : String
 
-      def initialize(@name)
+      def initialize(@name, @type = nil)
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
+        @type = pattern.type
         true
       end
 
@@ -18,6 +19,10 @@ module HM
         in HM::Type
           type.fields.any?(&.name.==(name))
         end
+      end
+
+      def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
+        mapping.tap { |memo| type.try { |item| memo[name] = item } }
       end
 
       def format : String

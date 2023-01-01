@@ -150,11 +150,6 @@ macro expect_matches(patterns, type, source)
     enumerator =
       HM::BranchEnumerator.new(environment)
 
-    branches =
-      enumerator
-        .possibilities(definitions.last)
-        .flat_map { |branch| HM::PatternGenerator.generate(branch) }
-
     patterns =
       HM::Parser.patterns({{patterns}})
 

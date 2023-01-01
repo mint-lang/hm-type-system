@@ -5,13 +5,14 @@ module HM
       getter pattern : Pattern
       getter name : String
 
-      def initialize(@name, @pattern)
+      def initialize(@name, @pattern, @type = nil)
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
         case pattern
         when Field
-          pattern.name == name && self.pattern.matches?(pattern)
+          (pattern.name == name && self.pattern.matches?(pattern))
+            .tap { |matched| @type = pattern.type if matched }
         end
       end
 
@@ -25,6 +26,10 @@ module HM
 
           field && pattern.matches?(field.item)
         end
+      end
+
+      def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
+        pattern.gather(mapping)
       end
 
       def format : String

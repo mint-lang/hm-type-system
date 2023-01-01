@@ -11,5 +11,12 @@ module HM
     # This method returns the formatted version of the pattern (not neccerily
     # the actual syntax), it's used in the playground.
     abstract def format : String
+
+    # This method gethers all the Variable -> Type mappings recursively.
+    abstract def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
+
+    # All patterns must have a type (which gets filled during initialization
+    # or during matching)
+    property type : Checkable?
   end
 end
