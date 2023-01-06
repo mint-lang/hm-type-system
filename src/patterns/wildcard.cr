@@ -9,10 +9,6 @@ module HM
         true
       end
 
-      def matches?(type : Checkable) : Bool | Nil
-        true
-      end
-
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         mapping
       end

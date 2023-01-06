@@ -44,7 +44,7 @@ module HM
 
         if instanceA && instanceB
           unify(instanceA, instanceB)
-        elsif instanceA
+        elsif instanceA && instanceA != b
           mapping[b] = a
         else
           mapping[a] = b

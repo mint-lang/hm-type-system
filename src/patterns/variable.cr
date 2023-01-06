@@ -11,15 +11,6 @@ module HM
         true
       end
 
-      def matches?(type : Checkable) : Bool | Nil
-        case type
-        in HM::Variable
-          true
-        in HM::Type
-          type.fields.any?(&.name.==(name))
-        end
-      end
-
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
         mapping.tap { |memo| type.try { |item| memo[name] = item } }
       end

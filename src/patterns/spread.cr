@@ -11,11 +11,9 @@ module HM
       end
 
       def matches?(pattern : Pattern) : Bool | Nil
-        pattern.is_a?(Spread)
-      end
-
-      def matches?(type : Checkable) : Bool | Nil
-        true
+        pattern.is_a?(Spread) ||
+        pattern.is_a?(Wildcard) ||
+        pattern.is_a?(Variable)
       end
 
       def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)

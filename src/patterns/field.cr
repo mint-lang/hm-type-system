@@ -10,20 +10,12 @@ module HM
 
       def matches?(pattern : Pattern) : Bool | Nil
         case pattern
+        when Variable
+          true
+        when Wildcard
+          true
         when Field
           pattern.name == name && self.pattern.matches?(pattern)
-        end
-      end
-
-      def matches?(type : Checkable) : Bool | Nil
-        case type
-        in HM::Variable
-          false
-        in HM::Type
-          field =
-            type.fields.find(&.name.==(name))
-
-          field && pattern.matches?(field.item)
         end
       end
 
