@@ -7,23 +7,7 @@ module HM
     class Spread < Pattern
       getter name : String
 
-      def initialize(@name, @type = nil)
-      end
-
-      def matches?(pattern : Pattern) : Bool | Nil
-        pattern.is_a?(Spread) ||
-        pattern.is_a?(Wildcard) ||
-        pattern.is_a?(Variable)
-      end
-
-      def gather(mapping : Hash(String, Checkable)) : Hash(String, Checkable)
-        mapping.tap { |memo| type.try { |item| memo[name] = item } }
-      end
-
-      def copy_type_from(pattern : Pattern)
-        if pattern.is_a?(Spread)
-          @type = pattern.type
-        end
+      def initialize(@name, @type)
       end
 
       def format : String

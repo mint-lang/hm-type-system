@@ -7,7 +7,7 @@ require "./environment"
 require "./formatter"
 require "./parser"
 require "./pattern"
-require "./pattern_matcher"
+require "./patterns/**"
 require "./pattern_generator"
 
 module HM

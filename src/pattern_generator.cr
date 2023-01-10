@@ -1,8 +1,11 @@
 module HM
-  module PatternGenerator
-    extend self
-
+  class PatternGenerator
     include Composable
+
+    getter environment : Environment
+
+    def initialize(@environment)
+    end
 
     # This method is used to build matching patterns for a type.
     #
@@ -32,10 +35,16 @@ module HM
             .map { |items| Patterns::Tuple.new(items, type).as(Pattern) }
         else
           if type.empty?
-            [
-              Patterns::Type.new(type.name, [] of Pattern, type),
-              Patterns::Wildcard.new(type),
-            ] of Pattern
+            if environment.variants_map[type.name]?
+              [
+                Patterns::Type.new(type.name, [] of Pattern, type)
+              ] of Pattern
+            else
+              [
+                Patterns::Type.new(type.name, [] of Pattern, type),
+                Patterns::Wildcard.new(type),
+              ] of Pattern
+            end
           else
             composed =
               compose(type.fields.map { |field| generate(field.item) })

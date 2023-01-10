@@ -300,12 +300,12 @@ module HM
     # The methods are parsing specific patterns.
 
     def wildcard_pattern : Patterns::Wildcard | Nil
-      start { Patterns::Wildcard.new if char! '_' }
+      start { Patterns::Wildcard.new(Variable.new("a")) if char! '_' }
     end
 
     def variable_pattern : Patterns::Variable | Nil
       variable = self.variable
-      Patterns::Variable.new(variable.name) if variable
+      Patterns::Variable.new(variable.name, Variable.new("a")) if variable
     end
 
     def spread_pattern : Patterns::Spread | Nil
@@ -313,7 +313,7 @@ module HM
         next unless keyword! "..."
 
         variable = self.variable
-        Patterns::Spread.new(variable.name) if variable
+        Patterns::Spread.new(variable.name, Variable.new("a")) if variable
       end
     end
 
@@ -323,7 +323,7 @@ module HM
           pattern.as(Pattern | Nil)
         end
 
-      Patterns::Array.new(patterns) if patterns
+      Patterns::Array.new(patterns, Variable.new("a")) if patterns
     end
 
     def tuple_pattern : Patterns::Tuple | Nil
@@ -332,7 +332,7 @@ module HM
           pattern.as(Pattern | Nil)
         end
 
-      Patterns::Tuple.new(patterns) if patterns
+      Patterns::Tuple.new(patterns, Variable.new("a")) if patterns
     end
 
     def field_pattern : Patterns::Field | Nil
@@ -345,7 +345,7 @@ module HM
 
         next unless pattern = self.pattern
 
-        Patterns::Field.new(variable.name, pattern)
+        Patterns::Field.new(variable.name, pattern, Variable.new("a"))
       end
     end
 
@@ -358,7 +358,7 @@ module HM
             pattern.as(Pattern | Nil)
           end || [] of Pattern
 
-        Patterns::Type.new(name, patterns)
+        Patterns::Type.new(name, patterns, Variable.new("a"))
       end
     end
 

@@ -103,9 +103,12 @@ macro expect_patterns(expected, source)
     enumerator =
       HM::BranchEnumerator.new(environment)
 
+    generator =
+      HM::PatternGenerator.new(environment)
+
     enumerator
       .possibilities(definitions.last)
-      .flat_map { |branch| HM::PatternGenerator.generate(branch) }
+      .flat_map { |branch| generator.generate(branch) }
       .map(&.format)
       .should eq({{expected}})
   end
@@ -132,44 +135,6 @@ macro expect_resolves(type, expected, source)
     else
       fail "Could not parse {{type.id}}."
     end
-  end
-end
-
-macro expect_matches(patterns, type, source)
-  it "Expands type: {{source.id}}" do
-    definitions =
-      HM::Parser.definitions({{source}})
-
-    fail "Could not parse {{source.id}}" unless definitions
-
-    environment =
-      HM::Environment.new(definitions)
-
-    fail "Environment not sound!" unless environment.sound?
-
-    enumerator =
-      HM::BranchEnumerator.new(environment)
-
-    patterns =
-      HM::Parser.patterns({{patterns}})
-
-    fail "Cannot parse patterns!" unless patterns
-
-    type =
-      HM::Parser.type({{type}})
-
-    fail "Cannot parse type!" unless type
-
-    matcher =
-      HM::PatternMatcher.new(environment)
-
-    result =
-      matcher.match_patterns(patterns, type)
-
-    fail "Could not match patterns" unless result
-
-    result[:not_covered].map(&.format).should be_empty
-    result[:not_matched].map(&.format).should be_empty
   end
 end
 
@@ -387,10 +352,6 @@ describe HM do
     "User(name: Nothing, active: Bool, age: _)",
     "User(name: Nothing, active: _, age: Number)",
     "User(name: Nothing, active: _, age: _)",
-    "User(name: _, active: Bool, age: Number)",
-    "User(name: _, active: Bool, age: _)",
-    "User(name: _, active: _, age: Number)",
-    "User(name: _, active: _, age: _)",
   ], <<-TYPE
     type String
     type Number
@@ -405,68 +366,6 @@ describe HM do
       name : Maybe(String),
       active : Bool,
       age : Number
-    }
-    TYPE
-  )
-
-  expect_matches(
-    (<<-TYPE
-    E(X, O)
-    E(X, P)
-    E(Y, O)
-    E(Y, P)
-    F(X)
-    F(Y)
-    G
-    E(X, _)
-    E(_, O)
-    E(X, _)
-    E(_, P)
-    E(Y, _)
-    E(_, O)
-    E(Y, _)
-    E(_, P)
-    F(_)
-    _
-    TYPE
-
-      ), "D(C,E)",
-    <<-TYPE2
-    type A
-    type B
-
-    type C {
-      X
-      Y
-    }
-
-    type E {
-      O
-      P
-    }
-
-    type D(a, b) {
-      E(a, b)
-      F(a)
-      G
-    }
-    TYPE2
-  )
-
-  expect_matches(
-    (<<-TYPE
-    [{a, b}, ...rest]
-    [{a, _}]
-    []
-    TYPE
-
-      ), "Array(Tuple(String, String))",
-    <<-TYPE
-    type String
-    type Array(a)
-    type Maybe(a) {
-      Just(a)
-      Nothing
     }
     TYPE
   )
