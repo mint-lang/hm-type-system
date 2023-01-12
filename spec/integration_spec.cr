@@ -173,6 +173,7 @@ describe HM do
 
   expect_normalized("Function(value: a, context: Test.Context(b), Test.Context(c))", "Function(value: a, context: Test.Context(b), Test.Context(c))")
 
+  expect_not_unify("Function(Maybe(value), Maybe(value))", "Function(value: value, Maybe(value))")
   expect_not_unify("Function(String,Number)", "Function(Number,Number)")
   expect_not_unify("Array(x)", "Array(x,y)")
   expect_not_unify("Array(x,y)", "Array(x)")

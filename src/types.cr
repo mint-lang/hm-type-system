@@ -32,6 +32,11 @@ module HM
     def empty?
       true
     end
+
+    # Returns whether this type includes (equals) the other type or variable.
+    def includes?(other : Checkable)
+      self == other
+    end
   end
 
   # Represents a type which has a name and can have many fields.
@@ -79,6 +84,11 @@ module HM
     # A type is considered empty if it has no fields.
     def empty?
       fields.empty?
+    end
+
+    # Returns whether this type includes the other type or variable.
+    def includes?(other : Checkable)
+      self == other || fields.any? { |field| field.item.includes?(other) }
     end
   end
 

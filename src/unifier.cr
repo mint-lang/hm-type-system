@@ -18,16 +18,15 @@ module HM
       mapping =
         {} of Variable => Checkable
 
-      result =
-        unify(normalize(a), normalize(b), mapping)
-
-      substitue(result, mapping) if result
+      unify(normalize(a), normalize(b), mapping).try do |result|
+        substitue(result, mapping) if result
+      end
     end
 
     # This method tries to unify the given types by traversing it's parameters
-    # and producing a mapping of variables to types (Variable => Checkable) which
-    # later on we can use to substitue to one of the types and create a unified
-    # type.
+    # and producing a mapping of variables to types (Variable => Checkable)
+    # which later on we can use to substitue to one of the types and create a
+    # unified type.
     #
     # It is important that this method assumes that both of the types were
     # normalized before, since normalization orders the fields, so as an
@@ -35,32 +34,17 @@ module HM
     private def unify(a : Checkable, b : Checkable, mapping : Hash(Variable, Checkable))
       case {a, b}
       in {Variable, Variable}
-        # If there are two variables we need to check if they already have
-        # assigned types, if they do we need to test if they are equal, if not
-        # we cannot unify, otherwise we can just point them to each other
-        # (depending if they have instances or not).
-        instanceA = mapping[a]?
-        instanceB = mapping[b]?
+        # If the mapped type contains the varaible it would result in a circular
+        # substitution so it's not unifiable.
+        return nil if mapping[b]?.try(&.includes?(a))
 
-        if instanceA && instanceB
-          unify(instanceA, instanceB)
-        elsif instanceA && instanceA != b
-          mapping[b] = a
+        if mapping[a]?
+          unify(b, a)
         else
-          mapping[a] = b
+          a.tap { mapping[a] = b }
         end
       in {Variable, Type}
-        # If we have a variable and a type we need to check if the variable
-        # already points to the same type, if not, we cannot unify, otherwise
-        # we can just point the variable to the type.
-        instance = mapping[a]?
-
-        # This check is important since the variables can point to each other.
-        if instance && instance.is_a?(Type)
-          unify(instance, b)
-        else
-          mapping[a] = b
-        end
+        a.tap { mapping[a] = b }
       in {Type, Variable}
         # In this branch we just call unify for the case above.
         unify(b, a, mapping)
